@@ -36,8 +36,8 @@ tasks:
       - python -m pip install -r requirements.txt
 
   generate-antlr:
-    desc: Generate sources for the grammar (Windows only)
-    platforms: [windows]
+    desc: Generate sources for the grammar
+    #platforms: [windows]
     cmds:
       - echo Generate sources for the grammar...
 #      - mkdir {{.DIR_OUTPUT}}/base
@@ -91,8 +91,8 @@ tasks:
   #       {{.PARSER_FILE}}
 
   update-generate:
-    desc: Generate using antlr4 wrapper (Windows only)
-    platforms: [windows]
+    desc: Generate using antlr4 wrapper
+    #platforms: [windows]
     cmds:
       - echo Generate sources for the grammar...
       - >
@@ -114,8 +114,8 @@ tasks:
 #    platforms: [windows]
 #    cmds:
 #      - del "gen-output"
-    desc: Delete generated output directory contents (Windows only)
-    platforms: [windows]
+    desc: Delete generated output directory contents
+    #platforms: [windows]
     cmds:
       - rmdir /s /q "{{.DIR_OUTPUT}}"
   

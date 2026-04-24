@@ -1,6 +1,11 @@
 # Ignore ENV file.
 .env
 
+# Python bytecode / caches
+__pycache__/
+*.py[cod]
+*$py.class
+
 # Ignore compiled output (containing all emitted code and types).
 dist/
 
