@@ -1,0 +1,21 @@
+# Ignore ENV file.
+.env
+
+# Ignore compiled output (containing all emitted code and types).
+dist/
+
+# DO NOT ignore js files in examples.
+!examples/basic-output.js
+!examples/nested-output.js
+
+# ANTLR4 output directory where all output is generated to.
+gen-output
+
+# Ignore .antlr dir itself and all its contents.
+**/.antlr/**
+
+# Ignore logs...
+logs
+*.log
+
+*.local

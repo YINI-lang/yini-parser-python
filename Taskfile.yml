@@ -1,0 +1,121 @@
+# Taskfile.yml for yini-parser-python.
+
+# Setup new file (Taskfile.yaml) on Windows:
+# winget install Task.Task
+# task --init
+
+version: '3'
+
+vars:
+  GRAMMAR_BASE: ./grammar/v1.0.0-rc.5x
+
+  PARSER_FILE:  "{{.GRAMMAR_BASE}}/YiniParser.g4"
+  LEXER_FILE:   "{{.GRAMMAR_BASE}}/YiniLexer.g4"
+  ANTLR_JAR:    ./libs/antlr4/antlr4-4.13.2-complete.jar
+  DIR_OUTPUT:   ./src/grammar/generated
+  START_RULE:   yini
+
+tasks:
+  default:
+    cmds:
+      - task --list
+
+  antlr-help:
+    desc: Show ANTLR help
+    cmds:
+      - java -jar {{.ANTLR_JAR}} -help
+
+  start:
+    desc: Start the project (after running install first).
+    cmds:
+      - python src/main.py ./sample/basic.yini
+
+  install:
+    desc: Install Python packages
+    cmds:
+      - python -m pip install -r requirements.txt
+
+  generate-antlr:
+    desc: Generate sources for the grammar (Windows only)
+    platforms: [windows]
+    cmds:
+      - echo Generate sources for the grammar...
+#      - mkdir {{.DIR_OUTPUT}}/base
+#      - cp {{.GRAMMAR_BASE}}/base/{{.BASE_FILE}} {{.DIR_OUTPUT}}/base
+      - >
+        java -jar {{.ANTLR_JAR}}
+        -Dlanguage=Python3
+        -no-listener -visitor
+        -o {{.DIR_OUTPUT}}
+        {{.LEXER_FILE}}
+        {{.PARSER_FILE}}
+      - echo Done.
+
+  # ci-generate:
+  #   desc: Generate lexer and parser for CI (Linux only)
+  #   platforms: [linux]
+  #   deps: [ci-gen-lexer, ci-gen-parser]
+  #   cmds:
+  #     - echo "Generation done."
+
+  # ci-gen-lexer:
+  #   desc: Generate lexer in CI (Linux only)
+  #   platforms: [linux]
+  #   cmds:
+  #     - echo "Generates lexer (forces tokens into {{.DIR_OUTPUT}})..."
+  #     - >
+  #       java -Xmx1g -jar {{.ANTLR_JAR}}
+  #       -Werror -long-messages
+  #       -Dlanguage=Python3
+  #       -no-listener -visitor
+  #       -o {{.DIR_OUTPUT}} -Xexact-output-dir
+  #       {{.LEXER_FILE}}
+  #     - echo
+  #     - echo "Contents of {{.DIR_OUTPUT}}:"
+  #     - ls -la {{.DIR_OUTPUT}}
+  #     - test -f "{{.DIR_OUTPUT}}/YiniLexer.tokens" || ( echo "::error::Missing {{.DIR_OUTPUT}}/YiniLexer.tokens after lexer generation"; exit 2 )
+  #     - echo
+
+  # ci-gen-parser:
+  #   desc: Generate parser in CI using tokenVocab from output dir (Linux only)
+  #   platforms: [linux]
+  #   cmds:
+  #     - echo "Generates parser (using tokenVocab from {{.DIR_OUTPUT}})..."
+  #     - >
+  #       java -Xmx1g -jar {{.ANTLR_JAR}}
+  #       -Werror -long-messages
+  #       -Dlanguage=Python3
+  #       -no-listener -visitor
+  #       -o {{.DIR_OUTPUT}}
+  #       -lib {{.DIR_OUTPUT}}
+  #       {{.PARSER_FILE}}
+
+  update-generate:
+    desc: Generate using antlr4 wrapper (Windows only)
+    platforms: [windows]
+    cmds:
+      - echo Generate sources for the grammar...
+      - >
+        java -jar {{.ANTLR_JAR}}
+        -o {{.DIR_OUTPUT}}
+        -Dlanguage=Python3
+        {{.PARSER_FILE}}
+        {{.LEXER_FILE}}
+        -no-listener -visitor
+      - echo Done.
+
+#  tokens:
+#    desc: Run antlr4-parse and print tokens
+#    cmds:
+#      - antlr4-parse {{.PARSER_FILE}} {{.LEXER_FILE}} {{.START_RULE}} sample.yini -tokens
+
+  cls-gen:
+#    desc: Delete generated output directory contents (Windows only)
+#    platforms: [windows]
+#    cmds:
+#      - del "gen-output"
+    desc: Delete generated output directory contents (Windows only)
+    platforms: [windows]
+    cmds:
+      - rmdir /s /q "{{.DIR_OUTPUT}}"
+  

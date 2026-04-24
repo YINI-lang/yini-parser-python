@@ -1,0 +1,79 @@
+# Development Setup
+
+This document contains the basic information about installation, setup, and project structure.
+
+## Prerequisites
+- **Python 3** — required.
+- **pip** — required for installing Python dependencies.
+- **Task** — recommended for running project tasks.
+- **Java 17+** — optional, only required when regenerating parser code from the ANTLR grammar files.
+
+## Install Task
+Task is a tool for running project tasks.
+
+On Windows:
+```powershell
+winget install Task.Task
+```
+
+Check that it works:
+```powershell
+task --list
+```
+
+## Ensure Python 3 is installed
+Make sure Python 3 is installed and available on your system path.
+
+Check it with:
+```bash
+python --version
+```
+
+## Ensure pip is available
+In most Python 3 installations, `pip` is already included.
+
+Check that pip is available:
+```bash
+python -m pip --version
+```
+
+If needed, try:
+```bash
+python -m ensurepip --upgrade
+```
+
+## Install Python dependencies
+
+To install dependencies, you can run the install task:
+```bash
+task install
+```
+
+Or run this command directly:
+```bash
+python -m pip install -r requirements.txt
+```
+
+## Install Java 17+
+Java is only needed if you want to regenerate parser code from the ANTLR grammar files.
+
+Make sure you have JDK 17 or higher installed.
+
+Check your Java version with:
+```bash
+java -version
+```
+
+## Regenerate ANTLR-generated source files
+
+To regenerate the parser and lexer source files from the ANTLR grammar, run:
+```bash
+task generate-antlr
+```
+
+## ANTLR references
+
+- Python target notes:
+  https://github.com/antlr/antlr4/blob/master/doc/python-target.md
+- ANTLR artifacts:
+  https://repo1.maven.org/maven2/org/antlr/antlr4/
