@@ -266,16 +266,6 @@ class YiniBuilderVisitor(YiniParserVisitor):
             return inner
 
         # Single-quoted or double-quoted
-#        if len(text) >= 2 and text[0] == text[-1] and text[0] in {"'", '"'}:
-#            inner = text[1:-1]
-#
-#            # Raw / hyper: return as-is
-#            if prefix in {"R", "r", "H", "h"}:
-#                return inner
-#
-#            # Classic or unprefixed: decode simple escapes for now
-#            return bytes(inner, "utf-8").decode("unicode_escape")
-        # Single-quoted or double-quoted
         if len(text) >= 2 and text[0] == text[-1] and text[0] in {"'", '"'}:
             inner = text[1:-1]
 
