@@ -1,5 +1,6 @@
-# Generated from ./grammar/v1.0.0-rc.5x/YiniParser.g4 by ANTLR 4.13.2
+# Generated from ./grammar/v1.0.0-rc.5/YiniParser.g4 by ANTLR 4.13.2
 # encoding: utf-8
+# src\grammar\generated\YiniParser.py
 from antlr4 import *
 from io import StringIO
 import sys
@@ -144,7 +145,7 @@ class YiniParser ( Parser ):
                       "NUMBER", "SS", "CARET", "GT", "LT", "EQ", "HASH", 
                       "COMMA", "COLON", "OB", "CB", "OC", "CC", "PLUS", 
                       "DOLLAR", "PC", "AT", "SEMICOLON", "NL", "WS", "BLOCK_COMMENT", 
-                      "FULL_LINE_COMMENT", "INLINE_COMMENT", "KEY", "IDENT_INVALID", 
+                      "LINE_COMMENT", "INLINE_COMMENT", "KEY", "IDENT_INVALID", 
                       "REST", "META_INVALID" ]
 
     RULE_yini = 0
@@ -218,7 +219,7 @@ class YiniParser ( Parser ):
     NL=36
     WS=37
     BLOCK_COMMENT=38
-    FULL_LINE_COMMENT=39
+    LINE_COMMENT=39
     INLINE_COMMENT=40
     KEY=41
     IDENT_INVALID=42
