@@ -21,11 +21,14 @@ jobs:
         with:
           python-version: "3.11"
 
+    #   - name: Install dependencies
+    #     run: |
+    #       python -m pip install --upgrade pip
+    #       pip install -r requirements.txt
+    #       pip install -r requirements-dev.txt
       - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install -r requirements-dev.txt
-          
+        run: |            
+            pip install -e .[dev]   # -e means in editable mode, [dev] means also install the optional dependency group called dev
+
       - name: Run tests
         run: task test
