@@ -71,6 +71,8 @@ To regenerate the parser and lexer source files from the ANTLR grammar, run:
 task generate-antlr
 ```
 
+The generated code will go into `src/grammar/generated`, and shall not be hand-edited since that content will get overwritten on the next generation.
+
 ## ANTLR references
 
 - Python target notes:

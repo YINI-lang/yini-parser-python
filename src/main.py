@@ -1,22 +1,27 @@
-import sys
-from antlr4 import *
-from grammar.generated.YiniLexer import YiniLexer
-from grammar.generated.YiniParser import YiniParser
-from core.VisitorInterp import VisitorInterp
+"""
+  Usage:
+    from yini_parser import load
 
-print("start")
+    data = load("sample/basic.yini")
+    print(data["App"]["name"])
+"""
+
+
+# src/main.py
+import sys
+from pprint import pprint
+
+from api.load import load
+
 
 def main(argv):
-    input_stream = FileStream(argv[1])
-    lexer = YiniLexer(input_stream)
-    stream = CommonTokenStream(lexer)
-    parser = YiniParser(stream)
-    tree = parser.start_()
-    if parser.getNumberOfSyntaxErrors() > 0:
-        print("syntax errors")
-    else:
-        vinterp = VisitorInterp()
-        vinterp.visit(tree)
+    if len(argv) < 2:
+        print("Usage: python src/main.py sample/basic.yini")
+        sys.exit(1)
 
-if __name__ == '__main__':
+    data = load(argv[1])
+    pprint(data)
+
+
+if __name__ == "__main__":
     main(sys.argv)

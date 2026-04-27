@@ -1,13 +1,14 @@
 # Taskfile.yml for yini-parser-python.
 
-# Setup new file (Taskfile.yaml) on Windows:
+# Setup new file on Windows:
 # winget install Task.Task
 # task --init
 
 version: '3'
 
 vars:
-  GRAMMAR_BASE: ./grammar/v1.0.0-rc.5x
+  GRAMMAR_BASE: ./grammar/v1.0.0-rc.5
+#  BASE_FILE:    YiniLexerBase.py  # Target/language specific base file.
 
   PARSER_FILE:  "{{.GRAMMAR_BASE}}/YiniParser.g4"
   LEXER_FILE:   "{{.GRAMMAR_BASE}}/YiniLexer.g4"
@@ -26,18 +27,24 @@ tasks:
       - java -jar {{.ANTLR_JAR}} -help
 
   start:
-    desc: Start the project (after running install first).
+    desc: Start the project.
     cmds:
-      - python src/main.py ./sample/basic.yini
+  #    - python src/main.py ./sample/basic.yini
+       - python src/main.py sample/basic.yini
 
   install:
     desc: Install Python packages
     cmds:
       - python -m pip install -r requirements.txt
 
+  install-dev:
+    desc: Install Python packages
+    cmds:
+      - python -m pip install -r requirements-dev.txt
+
   generate-antlr:
-    desc: Generate sources for the grammar
-    #platforms: [windows]
+    desc: Generate sources for the grammar (Windows only)
+    platforms: [windows]
     cmds:
       - echo Generate sources for the grammar...
 #      - mkdir {{.DIR_OUTPUT}}/base
@@ -91,8 +98,8 @@ tasks:
   #       {{.PARSER_FILE}}
 
   update-generate:
-    desc: Generate using antlr4 wrapper
-    #platforms: [windows]
+    desc: Generate using antlr4 wrapper (Windows only)
+    platforms: [windows]
     cmds:
       - echo Generate sources for the grammar...
       - >
@@ -109,13 +116,33 @@ tasks:
 #    cmds:
 #      - antlr4-parse {{.PARSER_FILE}} {{.LEXER_FILE}} {{.START_RULE}} sample.yini -tokens
 
+  check:
+    desc: Run all project checks.
+    deps: [lint, typecheck, test]
+
+  test:
+    desc: Run tests
+    cmds:
+      - python -m pytest -v
+
+  lint:
+    desc: Run Ruff linter
+    cmds:
+      - python -m ruff check src
+
+  typecheck:
+    desc: Run mypy type checking
+    cmds:
+#- python -m mypy src
+      - python -m mypy src/main.py src/core
+
   cls-gen:
 #    desc: Delete generated output directory contents (Windows only)
 #    platforms: [windows]
 #    cmds:
 #      - del "gen-output"
-    desc: Delete generated output directory contents
-    #platforms: [windows]
+    desc: Delete generated output directory contents (Windows only)
+    platforms: [windows]
     cmds:
       - rmdir /s /q "{{.DIR_OUTPUT}}"
   

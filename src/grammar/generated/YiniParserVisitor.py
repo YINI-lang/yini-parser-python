@@ -1,4 +1,4 @@
-# Generated from ./grammar/v1.0.0-rc.5x/YiniParser.g4 by ANTLR 4.13.2
+# Generated from ./grammar/v1.0.0-rc.5/YiniParser.g4 by ANTLR 4.13.2
 from antlr4 import *
 if "." in __name__:
     from .YiniParser import YiniParser
