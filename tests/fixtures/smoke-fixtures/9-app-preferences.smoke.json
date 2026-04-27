@@ -1,0 +1,17 @@
+{
+    "ShowTips": false,
+    "RecentFiles": [
+        "\\home\\user\\docs\\report.docx",
+        "\\home\\user\\docs\\notes.txt"
+    ],
+    "FileFilters": [
+        "*.docx",
+        "*.txt",
+        "*.md"
+    ],
+    "CacheFolder": null,
+    "CacheFolder2": null,
+    "Backup": true,
+    "BackupInterval": 10,
+    "BackupPath": "\\home\\user\\backups\\"
+}

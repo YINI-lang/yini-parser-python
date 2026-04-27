@@ -1,0 +1,23 @@
+{
+    "Integrations": {
+        "google": {
+            "api_key": "AIzaSy...",
+            "enabled": true
+        },
+        "stripe": {
+            "secret": "sk_test_...",
+            "enabled": false
+        },
+        "github": {
+            "token": null,
+            "enabled": false
+        }
+    },
+    "Webhooks": {
+        "enabled": true,
+        "urls": [
+            "https://webhook.site/abc123",
+            "https://hooks.example.com/events"
+        ]
+    }
+}

@@ -1,0 +1,43 @@
+{
+    "System": {
+        "config": {
+            "name": "production",
+            "enabled": true,
+            "version": 1.5,
+            "metadata": {},
+            "tags": [],
+            "fallback_host": null,
+            "services": {
+                "web": {
+                    "ports": [
+                        80,
+                        443
+                    ],
+                    "routes": [
+                        {
+                            "path": "/",
+                            "secure": true
+                        },
+                        {
+                            "path": "/api",
+                            "secure": false
+                        }
+                    ]
+                },
+                "database": {
+                    "replicas": [
+                        {
+                            "host": "db1",
+                            "role": "primary"
+                        },
+                        {
+                            "host": "db2",
+                            "role": "secondary"
+                        }
+                    ],
+                    "readonly": false
+                }
+            }
+        }
+    }
+}

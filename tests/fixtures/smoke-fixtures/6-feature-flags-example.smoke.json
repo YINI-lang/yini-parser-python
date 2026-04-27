@@ -1,0 +1,24 @@
+{
+    "Features": {
+        "beta": true,
+        "dark_mode": true,
+        "experimental_ui": false,
+        "welcome_tour": true,
+        "User Groups": {
+            "admin": [
+                "alice",
+                "bob"
+            ],
+            "beta_testers": [
+                "charlie",
+                "dana"
+            ],
+            "regular_users": []
+        },
+        "Feature Toggles": {
+            "feature_x": true,
+            "feature_y": false,
+            "feature_z": null
+        }
+    }
+}

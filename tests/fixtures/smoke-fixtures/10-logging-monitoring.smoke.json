@@ -1,0 +1,19 @@
+{
+    "Logging": {
+        "level": "info",
+        "to_console": true,
+        "to_file": true,
+        "log_path": "/var/log/app.log",
+        "max_file_size": 1048576,
+        "rotate": true,
+        "retry_delay": 2.5
+    },
+    "Alerts": {
+        "email_on_error": true,
+        "emails": [
+            "ops@example.com",
+            "alerts@example.com"
+        ],
+        "slack_webhook": null
+    }
+}

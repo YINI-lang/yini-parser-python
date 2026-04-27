@@ -1,0 +1,18 @@
+{
+    "CLI": {
+        "command": "deploy",
+        "dry_run": false,
+        "verbosity": 2,
+        "include_paths": [
+            "src/",
+            "lib/",
+            "config/"
+        ],
+        "timeout": 60,
+        "Output": {
+            "format": "json",
+            "color": true,
+            "log_level": "debug"
+        }
+    }
+}

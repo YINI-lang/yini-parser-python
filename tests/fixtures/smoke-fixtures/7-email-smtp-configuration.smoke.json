@@ -1,0 +1,14 @@
+{
+    "SMTP": {
+        "server": "smtp.mailserver.com",
+        "port": 587,
+        "use_tls": true,
+        "username": "mailer",
+        "password": "****",
+        "Defaults": {
+            "from_address": "noreply@example.com",
+            "reply_to": null,
+            "signature": "Kind regards,\r\n\tThe Example Team\r\n\t"
+        }
+    }
+}
