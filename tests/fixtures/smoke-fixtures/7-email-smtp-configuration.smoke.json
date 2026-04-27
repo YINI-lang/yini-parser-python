@@ -8,7 +8,7 @@
         "Defaults": {
             "from_address": "noreply@example.com",
             "reply_to": null,
-            "signature": "Kind regards,\r\n\tThe Example Team\r\n\t"
+            "signature": "Kind regards,\n\tThe Example Team\n\t"
         }
     }
 }
