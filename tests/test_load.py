@@ -1,7 +1,7 @@
 # tests/test_load.py
 from __future__ import annotations
 
-from api.load import load, loads
+from yini_parser.api.load import load, loads
 
 
 def test_loads_parses_basic_document() -> None:
