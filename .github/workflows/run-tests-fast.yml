@@ -1,10 +1,18 @@
-# .github/workflows/run-tests.yml
-name: Run tests
+# .github/workflows/run-tests-fast.yml
+#
+# Fast CI
+name: Run tests-fast
 
 on:
+  # Runs on every PR to main.
   pull_request:
-    branches: ['main'] # To main (direct commits, or merges from PRs).
-  workflow_dispatch: # allows manual run from GitHub UI
+    branches: ['main']  # PRs targeting main.
+
+  # Runs on pushes to main.
+  push:
+    branches: ['main']  # Direct commits and merges into main.
+
+  workflow_dispatch:    # Allows manual run from GitHub UI.
 
 jobs:
   test:
