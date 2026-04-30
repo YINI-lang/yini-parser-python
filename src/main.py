@@ -11,7 +11,7 @@
 import sys
 from pprint import pprint
 
-from api.load import load
+from yini_parser.api.load import load
 
 
 def main(argv):

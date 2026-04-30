@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from api.load import load
+from yini_parser.api.load import load
 
 FIXTURES_DIR = Path("tests/fixtures/smoke-fixtures")
 

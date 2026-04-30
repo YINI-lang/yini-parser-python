@@ -1,10 +1,18 @@
 # Ignore ENV file.
 .env
 
-# Python bytecode / caches
+# Python bytecode / caches.
 __pycache__/
-*.py[cod]
 *$py.class
+
+# "*.py[cod]"" covers "*.pyc" too.
+*.py[cod]
+
+.pytest_cache/
+.mypy_cache/
+
+# Ignore Python linting cache.
+.ruff_cache/
 
 # Ignore compiled output (containing all emitted code and types).
 dist/

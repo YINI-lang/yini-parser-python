@@ -1,4 +1,4 @@
-# Generated from ./grammar/v1.0.0-rc.5/YiniLexer.g4 by ANTLR 4.13.2
+# Generated from ./grammar/v1.0.0-rc.5x/YiniLexer.g4 by ANTLR 4.13.2
 from antlr4 import *
 from io import StringIO
 import sys
@@ -332,7 +332,7 @@ class YiniLexer(Lexer):
     NL = 36
     WS = 37
     BLOCK_COMMENT = 38
-    LINE_COMMENT = 39
+    FULL_LINE_COMMENT = 39
     INLINE_COMMENT = 40
     KEY = 41
     IDENT_INVALID = 42
@@ -355,7 +355,7 @@ class YiniLexer(Lexer):
             "TRIPLE_QUOTED_STRING", "SINGLE_OR_DOUBLE", "R_AND_C_STRING", 
             "HYPER_STRING", "NUMBER", "SS", "CARET", "GT", "LT", "EQ", "HASH", 
             "COMMA", "COLON", "OB", "CB", "OC", "CC", "PLUS", "DOLLAR", 
-            "PC", "AT", "SEMICOLON", "NL", "WS", "BLOCK_COMMENT", "LINE_COMMENT", 
+            "PC", "AT", "SEMICOLON", "NL", "WS", "BLOCK_COMMENT", "FULL_LINE_COMMENT", 
             "INLINE_COMMENT", "KEY", "IDENT_INVALID", "REST", "META_INVALID" ]
 
     ruleNames = [ "EBD", "HSPACE", "DIGIT", "SIGN", "IDENT_SIMPLE_START", 
@@ -373,7 +373,7 @@ class YiniLexer(Lexer):
                   "NUMBER", "SS", "CARET", "GT", "LT", "EQ", "HASH", "COMMA", 
                   "COLON", "OB", "CB", "OC", "CC", "PLUS", "DOLLAR", "PC", 
                   "AT", "SEMICOLON", "EOL", "NL", "SECTION_TAIL_COMMENT", 
-                  "WS", "BLOCK_COMMENT", "DISABLE_LINE_MARKER", "LINE_COMMENT", 
+                  "WS", "BLOCK_COMMENT", "DISABLE_LINE_MARKER", "FULL_LINE_COMMENT", 
                   "INLINE_COMMENT", "KEY", "IDENT_INVALID", "REST", "META_INVALID" ]
 
     grammarFileName = "YiniLexer.g4"

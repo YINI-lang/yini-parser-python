@@ -1,4 +1,4 @@
-# src/api/errors.py
+# src/yini_parser/api/errors.py
 
 class YiniParseError(Exception):
     def __init__(self, message: str, line: int | None = None, column: int | None = None):

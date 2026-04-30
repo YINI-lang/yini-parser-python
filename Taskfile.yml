@@ -7,13 +7,13 @@
 version: '3'
 
 vars:
-  GRAMMAR_BASE: ./grammar/v1.0.0-rc.5
+  GRAMMAR_BASE: ./grammar/v1.0.0-rc.5x
 #  BASE_FILE:    YiniLexerBase.py  # Target/language specific base file.
 
   PARSER_FILE:  "{{.GRAMMAR_BASE}}/YiniParser.g4"
   LEXER_FILE:   "{{.GRAMMAR_BASE}}/YiniLexer.g4"
   ANTLR_JAR:    ./libs/antlr4/antlr4-4.13.2-complete.jar
-  DIR_OUTPUT:   ./src/grammar/generated
+  DIR_OUTPUT:   ./src/yini_parser/grammar/generated
   START_RULE:   yini
 
 tasks:
@@ -32,6 +32,11 @@ tasks:
   #    - python src/main.py ./sample/basic.yini
        - python src/main.py sample/basic.yini
 
+  dev:
+    desc: Run development entrypoint
+    cmds:
+        - python src/dev.py 
+
   install:
     desc: Install Python packages
     cmds:
@@ -42,7 +47,7 @@ tasks:
     cmds:
       - python -m pip install -r requirements-dev.txt
 
-  generate-antlr:
+  antlr:
     desc: Generate sources for the grammar (Windows only)
     platforms: [windows]
     cmds:
@@ -97,7 +102,7 @@ tasks:
   #       -lib {{.DIR_OUTPUT}}
   #       {{.PARSER_FILE}}
 
-  update-generate:
+  update-antlr:
     desc: Generate using antlr4 wrapper (Windows only)
     platforms: [windows]
     cmds:
@@ -133,16 +138,35 @@ tasks:
   typecheck:
     desc: Run mypy type checking
     cmds:
-#- python -m mypy src
-      - python -m mypy src/main.py src/core
+      #- python -m mypy src
+      #- python -m mypy src/main.py src/yini-parser/core
+      #- python -m mypy src
+      # - python -m mypy -p src/yini_parser --explicit-package-bases --exclude "src[/\\\\]yini_parser[/\\\\]grammar[/\\\\]generated[/\\\\]" --ignore-missing-imports
+      - cmd /c "set MYPYPATH=src&& python -m mypy -p yini_parser --explicit-package-bases --ignore-missing-imports"
 
-  cls-gen:
-#    desc: Delete generated output directory contents (Windows only)
-#    platforms: [windows]
-#    cmds:
-#      - del "gen-output"
-    desc: Delete generated output directory contents (Windows only)
+  clean-gen:
+    desc: Delete generated ANTLR output directory contents (Windows only)
     platforms: [windows]
     cmds:
-      - rmdir /s /q "{{.DIR_OUTPUT}}"
+      #- rmdir /s /q "{{.DIR_OUTPUT}}"
+      #- cmd /c rmdir /s /q "{{.DIR_OUTPUT}}"
+      - powershell -NoProfile -Command "if (Test-Path '{{.DIR_OUTPUT}}') { Remove-Item -Recurse -Force '{{.DIR_OUTPUT}}' }"
+
+  # Deletes Python caches under src:
+  #   - __pycache__ directories
+  #   - .pyc files
+  #   - .pyo files, if any
+  clean-cache:
+    desc: Delete Python cache files and __pycache__ directories under src (Windows only)
+    platforms: [windows]
+    cmds:
+      - powershell -NoProfile -Command "Get-ChildItem 'src' -Recurse -Directory -Filter '__pycache__' | Remove-Item -Recurse -Force"
+      - powershell -NoProfile -Command "Get-ChildItem 'src' -Recurse -File -Include *.pyc,*.pyo | Remove-Item -Force"
+      - powershell -NoProfile -Command "Get-ChildItem 'tests' -Recurse -Directory -Filter '__pycache__' | Remove-Item -Recurse -Force"
+      - powershell -NoProfile -Command "Get-ChildItem 'tests' -Recurse -File -Include *.pyc,*.pyo | Remove-Item -Force"
   
+  clean:
+    desc: Run all cleanup tasks
+    deps:
+      - clean-gen
+      - clean-cache
