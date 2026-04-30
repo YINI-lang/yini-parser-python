@@ -3,6 +3,9 @@
 # Matrix CI
 name: Run tests-matrix
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 on:
   # Runs on every PR to main.
   pull_request:
