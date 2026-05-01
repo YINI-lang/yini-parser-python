@@ -1,3 +1,5 @@
+# src/yini_parser/utils/text.py
+
 from typing import Any
 
 def normalize_newlines(value: Any) -> Any:
