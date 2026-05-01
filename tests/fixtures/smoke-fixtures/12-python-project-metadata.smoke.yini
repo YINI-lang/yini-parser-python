@@ -22,13 +22,13 @@
 name = "parser"
 version = "0.1.0"
 description = "A Python parser for the configuration format."
-requiresPython = ">=3.10"
+requiresPython = ">=3.10"  // Minimum supported Python version.
 readme = "README.md"
 license = { text: "Apache-2.0" }
 keywords = ["parser", "configuration", "settings", "config", "python"]
 
     ^^ Authors
-    primary = { name: "Sam Leenen", email: "your_name@example.com" }
+    primary = { name: "Sam Leenen", email: "your_name@example.com" }  // Primary author/contact.
 
     ^^ URLs
     homepage = "https://yini-lang.org"
@@ -51,7 +51,7 @@ keywords = ["parser", "configuration", "settings", "config", "python"]
 
     ^^ Dependencies
     runtime = [
-        "antlr4-python3-runtime==4.13.2"
+        "antlr4-python3-runtime==4.13.2"  // Core parser runtime dependency.
     ]
 
         ^^^ OptionalDependencies
@@ -76,18 +76,18 @@ requires = [
     "setuptools>=69",
     "wheel"
 ]
-buildBackend = "setuptools.build_meta"
+buildBackend = "setuptools.build_meta"  // Standard setuptools backend.
 
 ^ Tool
     ^^ Pytest
     minVersion = "8.0"
-    addopts = "-ra -q"
+    addopts = "-ra -q"  // Show summary for skipped/failed tests, but keep output quieter.
     testpaths = ["tests"]
     pythonpath = ["src"]
 
     ^^ Coverage
     branch = true
-    source = ["src/parser"]
+    source = ["src/parser"]  // Measure coverage for package source only.
 
         ^^^ Report
         showMissing = true
@@ -99,11 +99,11 @@ buildBackend = "setuptools.build_meta"
 
     ^^ Ruff
     lineLength = 88
-    targetVersion = "py310"
+    targetVersion = "py310"  // Linting baseline.
 
         ^^^ Lint
         select = ["E", "F", "I", "UP", "B"]
-        ignore = ["E501"]
+        ignore = ["E501"]  // Let formatter handle long lines.
 
     ^^ Mypy
     pythonVersion = "3.10"
