@@ -8,7 +8,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-  "pytest",
+  "pytest>=8",
 ]
 
 [tool.pytest.ini_options]
