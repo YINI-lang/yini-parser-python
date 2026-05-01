@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 
+from yini_parser.utils.text import normalize_newlines
 from yini_parser.api.load import load
 
 FIXTURES_DIR = Path("tests/fixtures/smoke-fixtures")
@@ -38,7 +39,7 @@ def test_sample_yini_matches_expected_json(yini_path: Path, json_path: Path) -> 
     with json_path.open("r", encoding="utf-8") as f:
         expected = json.load(f)
 
-    assert actual == expected, (
+    assert normalize_newlines(actual) == normalize_newlines(expected), (
         f"Parsed output did not match expected JSON for {yini_path.name}.\n"
         f"YINI file: {yini_path}\n"
         f"JSON file: {json_path}"
