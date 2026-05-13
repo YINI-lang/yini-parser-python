@@ -7,7 +7,7 @@
 version: '3'
 
 vars:
-  GRAMMAR_BASE: ./grammar/v1.0.0-rc.5x
+  GRAMMAR_BASE: ./grammar/v1.0.0-rc.5xx
 #  BASE_FILE:    YiniLexerBase.py  # Target/language specific base file.
 
   PARSER_FILE:  "{{.GRAMMAR_BASE}}/YiniParser.g4"
@@ -130,6 +130,16 @@ tasks:
     cmds:
       - python -m pytest -v
 
+  test-adapter:
+    desc: Run the yini-test adapter against the sample basic YINI file
+    cmds:
+      - python tools/yini_parser_adapter.py --input sample/basic.yini
+
+  test-adapter-strict:
+    desc: Run the yini-test adapter in strict mode against a strict sample file
+    cmds:
+      - python tools/yini_parser_adapter.py --input sample/basic.strict.yini --mode strict
+      
   lint:
     desc: Run Ruff linter
     cmds:

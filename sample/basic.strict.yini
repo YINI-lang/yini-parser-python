@@ -1,0 +1,33 @@
+@yini strict
+
+/*
+ * Basic strict-mode YINI sample.
+ */
+
+^ App
+name = "Demo App"
+version = "1.0.0"
+environment = "development"
+enabled = true
+
+    ^^ Server
+    host = "localhost"
+    port = 8080
+    useTls = false
+
+    ^^ Features
+    enabled = [
+        "search",
+        "logging",
+        "metrics"
+    ]
+
+    ^^ Metadata
+    owner = "Example Team"
+    license = "Apache-2.0"
+    repository = {
+        type: "git",
+        url: "https://example.com/demo-app.git"
+    }
+
+/END

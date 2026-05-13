@@ -11,6 +11,7 @@ def normalize_newlines(value: Any) -> Any:
         return {k: normalize_newlines(v) for k, v in value.items()}
     return value
 
+
 def strip_whitespaces(txt: str) -> str:
     """
     Remove all whitespace characters from the input string.
@@ -25,3 +26,15 @@ def strip_whitespaces(txt: str) -> str:
         A new string with all whitespace removed.
     """
     return "".join(txt.split())
+
+
+def strip_backticks(text: str) -> str:
+    """
+    Removes the backtick at the beginning and at the end of the string.
+    """
+
+    text = text.strip()
+    if len(text) >= 2 and text[0] == "`" and text[-1] == "`":
+        return text[1:-1]
+    return text
+    

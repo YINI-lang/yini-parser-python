@@ -1,4 +1,4 @@
-# Generated from ./grammar/v1.0.0-rc.5x/YiniParser.g4 by ANTLR 4.13.2
+# Generated from ./grammar/v1.0.0-rc.5xx/YiniParser.g4 by ANTLR 4.13.2
 from antlr4 import *
 if "." in __name__:
     from .YiniParser import YiniParser
@@ -44,6 +44,11 @@ class YiniParserVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by YiniParser#yini_mode.
+    def visitYini_mode(self, ctx:YiniParser.Yini_modeContext):
+        return self.visitChildren(ctx)
+
+
     # Visit a parse tree produced by YiniParser#annotation.
     def visitAnnotation(self, ctx:YiniParser.AnnotationContext):
         return self.visitChildren(ctx)
@@ -69,6 +74,31 @@ class YiniParserVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by YiniParser#scalar_value.
+    def visitScalar_value(self, ctx:YiniParser.Scalar_valueContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by YiniParser#concat_expression.
+    def visitConcat_expression(self, ctx:YiniParser.Concat_expressionContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by YiniParser#concat_tail.
+    def visitConcat_tail(self, ctx:YiniParser.Concat_tailContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by YiniParser#concat_operand.
+    def visitConcat_operand(self, ctx:YiniParser.Concat_operandContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by YiniParser#string_literal.
+    def visitString_literal(self, ctx:YiniParser.String_literalContext):
+        return self.visitChildren(ctx)
+
+
     # Visit a parse tree produced by YiniParser#object_literal.
     def visitObject_literal(self, ctx:YiniParser.Object_literalContext):
         return self.visitChildren(ctx)
@@ -81,6 +111,11 @@ class YiniParserVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by YiniParser#object_member.
     def visitObject_member(self, ctx:YiniParser.Object_memberContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by YiniParser#object_member_separator.
+    def visitObject_member_separator(self, ctx:YiniParser.Object_member_separatorContext):
         return self.visitChildren(ctx)
 
 
@@ -101,16 +136,6 @@ class YiniParserVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by YiniParser#null_literal.
     def visitNull_literal(self, ctx:YiniParser.Null_literalContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by YiniParser#string_literal.
-    def visitString_literal(self, ctx:YiniParser.String_literalContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by YiniParser#string_concat.
-    def visitString_concat(self, ctx:YiniParser.String_concatContext):
         return self.visitChildren(ctx)
 
 

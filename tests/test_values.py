@@ -176,18 +176,47 @@ config = {
     }
 
 
-def test_parses_string_concatenation() -> None:
+def test_parses_decimal_numbers_with_digit_separators() -> None:
     text = """
 ^ App
-message = "hello"
-    + " "
-    + "world"
+maxUsers = 1_000_000
+negativeOffset = -1_250
+ratio = 1_000.25
+sampleRate = 1e-3
 """.lstrip()
 
     result = loads(text)
 
     assert result == {
         "App": {
-            "message": "hello world",
+            "maxUsers": 1_000_000,
+            "negativeOffset": -1_250,
+            "ratio": 1000.25,
+            "sampleRate": 1e-3,
+        },
+    }
+
+
+def test_parses_base_notation_numbers_with_digit_separators() -> None:
+    text = """
+^ App
+binaryMask = 0b_1010_1100
+binaryMaskAlt = %_1010_1100
+octalMode = 0o_755
+hexColor = 0x_FF_AA_00
+hexColorAlt = hex:FF_AA_00
+duodecimalValue = 0z_1x_e
+""".lstrip()
+
+    result = loads(text)
+
+    assert result == {
+        "App": {
+            "binaryMask": 0b10101100,
+            "binaryMaskAlt": 0b10101100,
+            "octalMode": 0o755,
+            "hexColor": 0xFFAA00,
+            "hexColorAlt": 0xFFAA00,
+            "duodecimalValue": 1 * 12 * 12 + 10 * 12 + 11,
         },
     }

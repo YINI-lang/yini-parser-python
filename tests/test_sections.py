@@ -177,3 +177,57 @@ anotherRootValue = 5
             "anotherRootValue": 5,
         },
     }
+
+
+def test_parses_section_markers_with_underscore_separators() -> None:
+    text = """
+^ Root
+name = "root"
+
+^_^ Child
+enabled = true
+
+^_^_^ GrandChild
+value = 42
+""".lstrip()
+
+    result = loads(text)
+
+    assert result == {
+        "Root": {
+            "name": "root",
+            "Child": {
+                "enabled": True,
+                "GrandChild": {
+                    "value": 42,
+                },
+            },
+        },
+    }
+
+
+def test_parses_sibling_sections_with_underscore_marker_separators() -> None:
+    text = """
+^ Root
+name = "root"
+
+^_^ Api
+host = "localhost"
+
+^_^ Database
+port = 5432
+""".lstrip()
+
+    result = loads(text)
+
+    assert result == {
+        "Root": {
+            "name": "root",
+            "Api": {
+                "host": "localhost",
+            },
+            "Database": {
+                "port": 5432,
+            },
+        },
+    }

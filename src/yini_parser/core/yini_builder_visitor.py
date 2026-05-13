@@ -2,6 +2,7 @@
 Transform / build_model -> visitor converts tree to Python values
 """
 
+# src/yini_parser/core/yini_builder_visitor.py
 from __future__ import annotations
 
 from typing import Any
@@ -9,6 +10,10 @@ from typing import Any
 from ..api.errors import YiniParseError
 from ..grammar.generated.YiniParser import YiniParser
 from ..grammar.generated.YiniParserVisitor import YiniParserVisitor
+from ..utils.antlr import ctx_location
+
+from .section_headers import parse_section_head
+from .value_decoders import decode_string_token, parse_number_literal
 from .validator import YiniValidator
 
 
@@ -33,10 +38,12 @@ class YiniBuilderVisitor(YiniParserVisitor):
 
     def __init__(self, strict: bool = False) -> None:
         super().__init__()
+        self._strict = strict
         self._root: dict[str, Any] = {}
         self._section_stack: list[dict[str, Any]] = []
         self._section_names: list[str] = []
         self._ignored_section_level: int | None = None
+        self._top_level_section_count = 0
         self._validator = YiniValidator(strict=strict)
 
     # ------------------------------------------------------------
@@ -46,6 +53,18 @@ class YiniBuilderVisitor(YiniParserVisitor):
     def visitYini(self, ctx: YiniParser.YiniContext) -> dict[str, Any]:
         for stmt_ctx in ctx.stmt():
             self.visit(stmt_ctx)
+
+        if self._strict:
+            if self._top_level_section_count != 1:
+                raise YiniParseError(
+                    "Strict mode requires exactly one explicit top-level section."
+                )
+
+            if ctx.terminal_stmt() is None:
+                raise YiniParseError(
+                    "Strict mode requires exactly one document terminator."
+                )
+
         return self._root
 
     # ------------------------------------------------------------
@@ -57,17 +76,29 @@ class YiniBuilderVisitor(YiniParserVisitor):
         if section_token is not None:
             symbol = section_token.getSymbol()
             line = symbol.line
-            column = symbol.column + 1  # ANTLR columns are zero-based.
+            column = symbol.column + 1
 
-            level, name = self._parse_section_head(
+            level, name = parse_section_head(
                 section_token.getText(),
                 line=line,
                 column=column,
             )
 
-            # Clear ignore state when a new section at same or shallower level appears.
-            if self._ignored_section_level is not None and level <= self._ignored_section_level:
+            # If we are inside an ignored duplicate/conflicting section block,
+            # skip deeper nested sections too. Resume only at same or shallower level.
+            if self._ignored_section_level is not None:
+                if level > self._ignored_section_level:
+                    return None
                 self._ignored_section_level = None
+
+            if self._strict and level == 1:
+                self._top_level_section_count += 1
+                if self._top_level_section_count > 1:
+                    raise YiniParseError(
+                        "Strict mode allows exactly one explicit top-level section.",
+                        line=line,
+                        column=column,
+                    )
 
             self._enter_section_with_parsed(
                 level,
@@ -81,11 +112,130 @@ class YiniBuilderVisitor(YiniParserVisitor):
         if self._ignored_section_level is not None:
             return None
 
+        meta_ctx = ctx.meta_stmt()
+        if meta_ctx is not None:
+            return self.visit(meta_ctx)
+
+        invalid_section_ctx = ctx.invalid_section_stmt()
+        if invalid_section_ctx is not None:
+            return self.visit(invalid_section_ctx)
+
         assignment_ctx = ctx.assignment()
         if assignment_ctx is not None:
             return self.visit(assignment_ctx)
 
+        bad_member_ctx = ctx.bad_member()
+        if bad_member_ctx is not None:
+            return self.visit(bad_member_ctx)
+
         return None
+
+    def visitMeta_stmt(self, ctx: YiniParser.Meta_stmtContext) -> None:
+        """
+        Handles metadata-level statements.
+
+        A meta statement can be:
+        - A valid directive, such as `@yini`, `@yini strict`, or `@include`.
+        - A valid annotation, currently recognized but ignored.
+        - Invalid metadata text, which must raise a parse error.
+        """
+
+        directive_ctx = ctx.directive()
+        if directive_ctx is not None:
+            return self.visit(directive_ctx)
+
+        annotation_ctx = ctx.annotation()
+        if annotation_ctx is not None:
+            return self.visit(annotation_ctx)
+
+        bad_meta_ctx = ctx.bad_meta_text()
+        if bad_meta_ctx is not None:
+            return self.visit(bad_meta_ctx)
+
+        return None
+
+    def visitDirective(self, ctx: YiniParser.DirectiveContext) -> None:
+        """
+        Handles parser directives.
+
+        Important:
+        - `@yini strict` and `@yini lenient` are document-mode declarations.
+        - They do not silently switch parser mode.
+        - IMPORTANT: Parser mode is selected by the caller when the parser is invoked.
+        - If the declared document mode does not match the selected parser mode,
+        parsing fails.
+        """
+
+        # `@include` is recognized by the grammar, but currently has no runtime
+        # behavior in this parser implementation.
+        if ctx.YINI_TOKEN() is None:
+            return None
+
+        mode_ctx = getattr(ctx, "yini_mode", lambda: None)()
+
+        # Plain `@yini` is valid and does not declare a required mode.
+        if mode_ctx is None:
+            return None
+
+        mode = mode_ctx.getText().strip().lower()
+        line, column = ctx_location(mode_ctx)
+
+        if mode not in {"strict", "lenient"}:
+            raise YiniParseError(
+                f"Invalid @yini mode: {mode!r}. Expected 'strict' or 'lenient'.",
+                line=line,
+                column=column,
+            )
+
+        if mode == "strict" and not self._strict:
+            raise YiniParseError(
+                "This document declares '@yini strict', but the parser is running in lenient mode.",
+                line=line,
+                column=column,
+            )
+
+        if mode == "lenient" and self._strict:
+            raise YiniParseError(
+                "This document declares '@yini lenient', but the parser is running in strict mode.",
+                line=line,
+                column=column,
+            )
+
+        return None
+
+    def visitAnnotation(self, ctx: YiniParser.AnnotationContext) -> None:
+        """
+        Handles metadata annotations.
+
+        Annotations are recognized syntax, but they currently do not affect the
+        parsed data model. They are ignored by this builder for now.
+        """
+
+        return None
+
+    def visitBad_meta_text(self, ctx: YiniParser.Bad_meta_textContext) -> None:
+        line, column = ctx_location(ctx)
+        raise YiniParseError(
+            f"Invalid YINI directive or metadata statement: {ctx.getText()!r}",
+            line=line,
+            column=column,
+        )
+
+    def visitInvalid_section_stmt(self, ctx: YiniParser.Invalid_section_stmtContext) -> None:
+        line, column = ctx_location(ctx)
+        raise YiniParseError(
+            f"Invalid section statement: {ctx.getText()!r}",
+            line=line,
+            column=column,
+        )
+
+    def visitBad_member(self, ctx: YiniParser.Bad_memberContext) -> None:
+        line, column = ctx_location(ctx)
+        raise YiniParseError(
+            f"Invalid member statement: {ctx.getText()!r}",
+            line=line,
+            column=column,
+        )
 
     def visitAssignment(self, ctx: YiniParser.AssignmentContext) -> None:
         key, value = self.visit(ctx.member())
@@ -132,7 +282,107 @@ class YiniBuilderVisitor(YiniParserVisitor):
     # ------------------------------------------------------------
 
     def visitValue(self, ctx: YiniParser.ValueContext) -> Any:
+        concat_ctx = getattr(ctx, "concat_expression", lambda: None)()
+        if concat_ctx is not None:
+            return self.visit(concat_ctx)
+
+        scalar_ctx = getattr(ctx, "scalar_value", lambda: None)()
+        if scalar_ctx is not None:
+            return self.visit(scalar_ctx)
+
+        list_ctx = getattr(ctx, "list_literal", lambda: None)()
+        if list_ctx is not None:
+            return self.visit(list_ctx)
+
+        object_ctx = getattr(ctx, "object_literal", lambda: None)()
+        if object_ctx is not None:
+            return self.visit(object_ctx)
+
+        return None
+
+    def visitScalar_value(self, ctx: YiniParser.Scalar_valueContext) -> Any:
+        string_ctx = getattr(ctx, "string_literal", lambda: None)()
+        if string_ctx is not None:
+            return self.visit(string_ctx)
+
+        number_ctx = getattr(ctx, "number_literal", lambda: None)()
+        if number_ctx is not None:
+            return self.visit(number_ctx)
+
+        null_ctx = getattr(ctx, "null_literal", lambda: None)()
+        if null_ctx is not None:
+            return self.visit(null_ctx)
+
+        boolean_ctx = getattr(ctx, "boolean_literal", lambda: None)()
+        if boolean_ctx is not None:
+            return self.visit(boolean_ctx)
+
         return self.visitChildren(ctx)
+
+    def visitConcat_expression(self, ctx: YiniParser.Concat_expressionContext) -> str:
+        first_token = ctx.STRING().getSymbol()
+        line = first_token.line
+        column = first_token.column + 1
+
+        parts: list[str] = [
+            decode_string_token(
+                ctx.STRING().getText(),
+                line=line,
+                column=column,
+            )
+        ]
+
+        for tail_ctx in ctx.concat_tail():
+            parts.append(self.visit(tail_ctx))
+
+        return "".join(parts)
+
+    def visitConcat_tail(self, ctx: YiniParser.Concat_tailContext) -> str:
+        return self.visit(ctx.concat_operand())
+
+    def visitConcat_operand(self, ctx: YiniParser.Concat_operandContext) -> str:
+        line, column = ctx_location(ctx)
+
+        string_token = ctx.STRING()
+        if string_token is not None:
+            return decode_string_token(
+                string_token.getText(),
+                line=line,
+                column=column,
+            )
+
+        if self._strict:
+            raise YiniParseError(
+                "Strict mode only allows string literals in string concatenation.",
+                line=line,
+                column=column,
+            )
+
+        number_token = ctx.NUMBER()
+        if number_token is not None:
+            return number_token.getText()
+
+        true_token = ctx.BOOLEAN_TRUE()
+        if true_token is not None:
+            return true_token.getText()
+
+        false_token = ctx.BOOLEAN_FALSE()
+        if false_token is not None:
+            return false_token.getText()
+
+        null_token = ctx.NULL()
+        if null_token is not None:
+            return null_token.getText()
+
+        return ""
+
+    def visitString_literal(self, ctx: YiniParser.String_literalContext) -> str:
+        line, column = ctx_location(ctx)
+        return decode_string_token(
+            ctx.getText(),
+            line=line,
+            column=column,
+        )
 
     def visitNull_literal(self, ctx: YiniParser.Null_literalContext) -> None:
         return None
@@ -142,69 +392,12 @@ class YiniBuilderVisitor(YiniParserVisitor):
         return text in {"true", "on", "yes"}
 
     def visitNumber_literal(self, ctx: YiniParser.Number_literalContext) -> int | float:
-        text = ctx.getText().strip()
-        line = ctx.start.line if ctx.start is not None else None
-        column = ctx.start.column + 1 if ctx.start is not None else None
-
-        try:
-            lowered = text.lower()
-
-            if lowered.startswith(("0x", "#")):
-                cleaned = text[1:] if text.startswith("#") else text[2:]
-                return int(cleaned, 16)
-
-            if lowered.startswith("0b"):
-                return int(text[2:], 2)
-
-            if lowered.startswith("%"):
-                return int(text[1:], 2)
-
-            if lowered.startswith("0o"):
-                return int(text[2:], 8)
-
-            if lowered.startswith("0z"):
-                return self._parse_duodecimal(text[2:], line=line, column=column)
-
-            if any(ch in text for ch in ".eE"):
-                return float(text)
-
-            return int(text, 10)
-
-        except YiniParseError:
-            raise
-
-        except ValueError:
-            raise YiniParseError(
-                f"Invalid number literal: {text!r}",
-                line=line,
-                column=column,
-            ) from None
-    
-    def visitString_literal(self, ctx: YiniParser.String_literalContext) -> str:
-        token = ctx.STRING().getSymbol()
-        line = token.line
-        column = token.column + 1
-
-        first = self._decode_string_token(
-            ctx.STRING().getText(),
+        line, column = ctx_location(ctx)
+        return parse_number_literal(
+            ctx.getText().strip(),
             line=line,
             column=column,
-        )
-
-        suffix = "".join(self.visit(part) for part in ctx.string_concat())
-        return first + suffix
-
-
-    def visitString_concat(self, ctx: YiniParser.String_concatContext) -> str:
-        token = ctx.STRING().getSymbol()
-        line = token.line
-        column = token.column + 1
-
-        return self._decode_string_token(
-            ctx.STRING().getText(),
-            line=line,
-            column=column,
-        )
+        )    
 
     def visitList_literal(self, ctx: YiniParser.List_literalContext) -> list[Any]:
         if ctx.EMPTY_LIST() is not None:
@@ -250,8 +443,26 @@ class YiniBuilderVisitor(YiniParserVisitor):
         return result
 
     def visitObject_member(self, ctx: YiniParser.Object_memberContext) -> tuple[str, Any]:
+        """
+        - Lenient mode allows `=`.
+        - Strict mode rejects `=` inside inline objects.
+        - The canonical inline object member separator remains `:`.
+        """
+
         key = ctx.KEY().getText()
         value = self.visit(ctx.value())
+
+        separator_ctx = ctx.object_member_separator()
+        separator = separator_ctx.getText().strip() if separator_ctx is not None else ":"
+
+        if self._strict and separator == "=":
+            line, column = ctx_location(separator_ctx or ctx)
+            raise YiniParseError(
+                "Inline object members must use ':' in strict mode.",
+                line=line,
+                column=column,
+            )
+
         return key, value
 
     # ------------------------------------------------------------
@@ -263,9 +474,6 @@ class YiniBuilderVisitor(YiniParserVisitor):
             return self._section_stack[-1]
         return self._root
 
-    # def _enter_section_with_parsed(
-    #         self, level: int, name: str
-    # ) -> None:
     def _enter_section_with_parsed(
         self,
         level: int,
@@ -316,207 +524,3 @@ class YiniBuilderVisitor(YiniParserVisitor):
         ):
             self._ignored_section_level = level
             return
-
-    def _parse_section_head(
-        self,
-        raw_text: str,
-        *,
-        line: int | None = None,
-        column: int | None = None,
-    ) -> tuple[int, str]:
-        """
-        Parses a SECTION_HEAD token text like:
-            "^ App\\n"
-            "^^ Server\\n"
-            "^7 DeepSection\\n"
-
-        Returns:
-            (level, name)
-        """
-        text = raw_text.strip()
-
-        if not text:
-            raise YiniParseError(
-                "Invalid section header: the header is empty.",
-                line=line,
-                column=column,
-            )
-
-        marker = text[0]
-
-        if marker not in {"^", "<", "§"}:
-            raise YiniParseError(
-                f"Invalid section header: {marker!r} is not a valid section marker. "
-                "Use one of: '^', '<', or '§'.",
-                line=line,
-                column=column,
-            )
-
-        i = 0
-        while i < len(text) and text[i] == marker:
-            i += 1
-
-        if i == 1 and i < len(text) and text[i].isdigit():
-            j = i
-            while j < len(text) and text[j].isdigit():
-                j += 1
-
-            level_text = text[i:j]
-
-            try:
-                level = int(level_text)
-            except ValueError:
-                raise YiniParseError(
-                    f"Invalid section level: {level_text!r} is not a valid number.",
-                    line=line,
-                    column=column,
-                ) from None
-
-            name = text[j:].strip()
-        else:
-            level = i
-            name = text[i:].strip()
-
-        if not name:
-            raise YiniParseError(
-                f"Missing section name after section marker {marker!r}.",
-                line=line,
-                column=column,
-            )
-
-        return level, self._strip_backticks(name)
-
-    def _strip_backticks(self, text: str) -> str:
-        if len(text) >= 2 and text[0] == "`" and text[-1] == "`":
-            return text[1:-1]
-        return text
-
-    def _decode_string_token(
-        self,
-        token_text: str,
-        *,
-        line: int | None = None,
-        column: int | None = None,
-    ) -> str:
-        """
-        Minimal first-pass string decoding.
-
-        Handles:
-        - Optional prefixes: r, c, h in either case.
-        - Single/double quoted strings.
-        - Triple-quoted strings.
-        - Simple quote stripping.
-
-        This is intentionally conservative for now.
-        """
-        text = token_text
-
-        if not text:
-            return ""
-
-        prefix = ""
-
-        if len(text) >= 2 and text[0] in "RrCcHh" and text[1] in {'"', "'"}:
-            prefix = text[0]
-            text = text[1:]
-        elif len(text) >= 4 and text[0] in "RrCc" and text[1:4] == '"""':
-            prefix = text[0]
-            text = text[1:]
-
-        # Triple-quoted string.
-        if text.startswith('"""') and text.endswith('"""') and len(text) >= 6:
-            inner = text[3:-3]
-
-            if prefix in {"C", "c"}:
-                return self._decode_classic_string(
-                    inner,
-                    line=line,
-                    column=column,
-                )
-
-            return inner
-
-        # Single-quoted or double-quoted string.
-        if len(text) >= 2 and text[0] == text[-1] and text[0] in {"'", '"'}:
-            inner = text[1:-1]
-
-            # Raw, hyper, and unprefixed strings: return as-is.
-            if prefix in {"", "R", "r", "H", "h"}:
-                return inner
-
-            # Classic strings: decode escapes.
-            if prefix in {"C", "c"}:
-                return self._decode_classic_string(
-                    inner,
-                    line=line,
-                    column=column,
-                )
-
-            return inner
-
-        raise YiniParseError(
-            f"Invalid string literal: {token_text!r}",
-            line=line,
-            column=column,
-        )
-
-    def _parse_duodecimal(
-        self,
-        text: str,
-        *,
-        line: int | None = None,
-        column: int | None = None,
-    ) -> int:
-        value = 0
-
-        if not text:
-            raise YiniParseError(
-                "Invalid duodecimal number: missing digits after '0z'.",
-                line=line,
-                column=column,
-            )
-
-        for ch in text:
-            if ch.isdigit():
-                digit = int(ch)
-            else:
-                lowered = ch.lower()
-
-                if lowered in {"a", "x"}:
-                    digit = 10
-                elif lowered in {"b", "e"}:
-                    digit = 11
-                else:
-                    raise YiniParseError(
-                        f"Invalid duodecimal number: {ch!r} is not a valid base-12 digit.",
-                        line=line,
-                        column=column,
-                    )
-
-            if digit >= 12:
-                raise YiniParseError(
-                    f"Invalid duodecimal number: {ch!r} is not a valid base-12 digit.",
-                    line=line,
-                    column=column,
-                )
-
-            value = value * 12 + digit
-
-        return value
-
-    # Helper
-    def _decode_classic_string(
-        self,
-        inner: str,
-        *,
-        line: int | None = None,
-        column: int | None = None,
-    ) -> str:
-        try:
-            return bytes(inner, "utf-8").decode("unicode_escape")
-        except UnicodeDecodeError as exc:
-            raise YiniParseError(
-                f"Invalid string escape sequence: {exc.reason}.",
-                line=line,
-                column=column,
-            ) from None
