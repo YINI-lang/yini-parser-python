@@ -81,6 +81,17 @@ See the [YINI specification and documentation](https://yini-lang.org/refs/specif
 
 ---
 
+## Examples
+
+Runnable example projects are available in the [YINI demo apps repository](https://github.com/YINI-lang/yini-demo-apps/tree/main/python).
+
+The Python examples show how to install `yini-parser`, load `.yini` files, and access parsed configuration data in small practical scripts.
+
+- [Python basic demo](https://github.com/YINI-lang/yini-demo-apps/tree/main/python/basic)
+- [Python medium demo](https://github.com/YINI-lang/yini-demo-apps/tree/main/python/medium)
+
+---
+
 ## Development
 
 For local development:
