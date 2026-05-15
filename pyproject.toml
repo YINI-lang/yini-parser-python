@@ -1,7 +1,34 @@
 [project]
 name = "yini-parser"
-version = "0.1.0"
+version = "0.1.0a1"
+description = "Official Python parser for YINI, an INI-inspired, indentation-insensitive configuration format with clear nested sections and explicit structure."
+readme = "README.md"
 requires-python = ">=3.10"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [
+  { name = "YINI-lang project" }
+]
+keywords = [
+  "yini",
+  "configuration",
+  "config",
+  "parser",
+  "ini",
+  "antlr"
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+  "Topic :: Text Processing :: Markup",
+  "Typing :: Typed"
+]
 dependencies = [
   "antlr4-python3-runtime==4.13.2",
 ]
@@ -9,7 +36,38 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
   "pytest>=8",
+  "ruff>=0.8",
+  "mypy>=1.13",
+  "build>=1.2",
+  "twine>=5",
 ]
+
+[project.urls]
+Homepage = "https://yini-lang.org?utm_campaign=yini_parser_python&utm_content=pyproject"
+Repository = "https://github.com/YINI-lang/yini-parser-python"
+Specification = "https://yini-lang.org/refs/specification?utm_campaign=yini_parser_python&utm_content=pyproject"
+Issues = "https://github.com/YINI-lang/yini-parser-python/issues"
+
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
+
+[tool.ruff]
+exclude = [
+  "src/yini_parser/grammar/generated",
+]
+
+[tool.mypy]
+mypy_path = "src"
+packages = ["yini_parser"]
+exclude = [
+  "src/yini_parser/grammar/generated/.*",
+]
+ignore_missing_imports = true
+explicit_package_bases = true

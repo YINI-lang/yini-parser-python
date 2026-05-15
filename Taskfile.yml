@@ -38,14 +38,14 @@ tasks:
         - python src/dev.py 
 
   install:
-    desc: Install Python packages
+    desc: Install yini-parser-python in editable mode
     cmds:
-      - python -m pip install -r requirements.txt
+      - python -m pip install -e .
 
   install-dev:
-    desc: Install Python packages
+    desc: Install yini-parser-python with development dependencies
     cmds:
-      - python -m pip install -r requirements-dev.txt
+      - python -m pip install -e ".[dev]"
 
   antlr:
     desc: Generate sources for the grammar (Windows only)
@@ -63,67 +63,12 @@ tasks:
         {{.PARSER_FILE}}
       - echo Done.
 
-  # ci-generate:
-  #   desc: Generate lexer and parser for CI (Linux only)
-  #   platforms: [linux]
-  #   deps: [ci-gen-lexer, ci-gen-parser]
-  #   cmds:
-  #     - echo "Generation done."
-
-  # ci-gen-lexer:
-  #   desc: Generate lexer in CI (Linux only)
-  #   platforms: [linux]
-  #   cmds:
-  #     - echo "Generates lexer (forces tokens into {{.DIR_OUTPUT}})..."
-  #     - >
-  #       java -Xmx1g -jar {{.ANTLR_JAR}}
-  #       -Werror -long-messages
-  #       -Dlanguage=Python3
-  #       -no-listener -visitor
-  #       -o {{.DIR_OUTPUT}} -Xexact-output-dir
-  #       {{.LEXER_FILE}}
-  #     - echo
-  #     - echo "Contents of {{.DIR_OUTPUT}}:"
-  #     - ls -la {{.DIR_OUTPUT}}
-  #     - test -f "{{.DIR_OUTPUT}}/YiniLexer.tokens" || ( echo "::error::Missing {{.DIR_OUTPUT}}/YiniLexer.tokens after lexer generation"; exit 2 )
-  #     - echo
-
-  # ci-gen-parser:
-  #   desc: Generate parser in CI using tokenVocab from output dir (Linux only)
-  #   platforms: [linux]
-  #   cmds:
-  #     - echo "Generates parser (using tokenVocab from {{.DIR_OUTPUT}})..."
-  #     - >
-  #       java -Xmx1g -jar {{.ANTLR_JAR}}
-  #       -Werror -long-messages
-  #       -Dlanguage=Python3
-  #       -no-listener -visitor
-  #       -o {{.DIR_OUTPUT}}
-  #       -lib {{.DIR_OUTPUT}}
-  #       {{.PARSER_FILE}}
-
-  update-antlr:
-    desc: Generate using antlr4 wrapper (Windows only)
-    platforms: [windows]
-    cmds:
-      - echo Generate sources for the grammar...
-      - >
-        java -jar {{.ANTLR_JAR}}
-        -o {{.DIR_OUTPUT}}
-        -Dlanguage=Python3
-        {{.PARSER_FILE}}
-        {{.LEXER_FILE}}
-        -no-listener -visitor
-      - echo Done.
-
-#  tokens:
-#    desc: Run antlr4-parse and print tokens
-#    cmds:
-#      - antlr4-parse {{.PARSER_FILE}} {{.LEXER_FILE}} {{.START_RULE}} sample.yini -tokens
-
   check:
     desc: Run all project checks.
-    deps: [lint, typecheck, test]
+    cmds:
+      - task lint
+      - task typecheck
+      - task test
 
   test:
     desc: Run tests
@@ -148,11 +93,17 @@ tasks:
   typecheck:
     desc: Run mypy type checking
     cmds:
-      #- python -m mypy src
-      #- python -m mypy src/main.py src/yini-parser/core
-      #- python -m mypy src
-      # - python -m mypy -p src/yini_parser --explicit-package-bases --exclude "src[/\\\\]yini_parser[/\\\\]grammar[/\\\\]generated[/\\\\]" --ignore-missing-imports
-      - cmd /c "set MYPYPATH=src&& python -m mypy -p yini_parser --explicit-package-bases --ignore-missing-imports"
+      - python -m mypy
+
+  build:
+    desc: Build source distribution and wheel
+    cmds:
+      - python -m build
+
+  check-dist:
+    desc: Check built distribution metadata
+    cmds:
+      - python -m twine check dist/*
 
   clean-gen:
     desc: Delete generated ANTLR output directory contents (Windows only)
@@ -167,16 +118,22 @@ tasks:
   #   - .pyc files
   #   - .pyo files, if any
   clean-cache:
-    desc: Delete Python cache files and __pycache__ directories under src (Windows only)
+    desc: Delete Python cache files and __pycache__ directories under src and tests
     platforms: [windows]
     cmds:
-      - powershell -NoProfile -Command "Get-ChildItem 'src' -Recurse -Directory -Filter '__pycache__' | Remove-Item -Recurse -Force"
-      - powershell -NoProfile -Command "Get-ChildItem 'src' -Recurse -File -Include *.pyc,*.pyo | Remove-Item -Force"
-      - powershell -NoProfile -Command "Get-ChildItem 'tests' -Recurse -Directory -Filter '__pycache__' | Remove-Item -Recurse -Force"
-      - powershell -NoProfile -Command "Get-ChildItem 'tests' -Recurse -File -Include *.pyc,*.pyo | Remove-Item -Force"
-  
+      - powershell -NoProfile -Command "Get-ChildItem 'src','tests' -Recurse -Directory -Filter '__pycache__' -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force"
+      - powershell -NoProfile -Command "Get-ChildItem 'src','tests' -Recurse -File -Include *.pyc,*.pyo -ErrorAction SilentlyContinue | Remove-Item -Force"
+      - powershell -NoProfile -Command "if (Test-Path '.pytest_cache') { Remove-Item -Recurse -Force '.pytest_cache' }"
+      - powershell -NoProfile -Command "if (Test-Path '.mypy_cache') { Remove-Item -Recurse -Force '.mypy_cache' }"
+      - powershell -NoProfile -Command "if (Test-Path '.ruff_cache') { Remove-Item -Recurse -Force '.ruff_cache' }"
+
   clean:
-    desc: Run all cleanup tasks
+    desc: Delete caches only
     deps:
-      - clean-gen
       - clean-cache
+
+  clean-all:
+    desc: Delete caches and generated ANTLR output
+    deps:
+      - clean-cache
+      - clean-gen
