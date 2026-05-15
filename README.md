@@ -2,7 +2,7 @@
 
 The official Python parser for **YINI** (by the YINI-lang project) — a human-readable, INI-inspired, indentation-insensitive configuration format with clear nested sections, explicit structure, comments, and predictable parsing.  
 
-> **Status:** Alpha (`0.1.0a1`).  
+> **Status:** Alpha.  
 > This parser is intended for early testing and integration. The public API and edge-case behavior may still change before `1.0.0`.
 
 ---
