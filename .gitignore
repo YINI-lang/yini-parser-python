@@ -14,8 +14,11 @@ __pycache__/
 # Ignore Python linting cache.
 .ruff_cache/
 
-# Ignore compiled output (containing all emitted code and types).
+# Python packaging/build artifacts
+build/
 dist/
+*.egg-info/
+src/*.egg-info/
 
 # DO NOT ignore js files in examples.
 !examples/basic-output.js
