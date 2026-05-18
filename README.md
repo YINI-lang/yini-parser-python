@@ -92,6 +92,21 @@ The Python examples show how to install `yini-parser`, load `.yini` files, and a
 
 ---
 
+## Feedback and bug reports
+
+If you find a problem, please open an issue on GitHub:
+
+- [Report a bug or issue](https://github.com/YINI-lang/yini-parser-python/issues)
+
+When reporting parser behavior, it is helpful to include:
+- The YINI input that caused the issue.
+- The expected result.
+- The actual result or error message.
+- The installed `yini-parser` version.
+- The Python version used.
+
+---
+
 ## Development
 
 For local development:
