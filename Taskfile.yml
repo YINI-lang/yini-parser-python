@@ -7,8 +7,7 @@
 version: '3'
 
 vars:
-  GRAMMAR_BASE: ./grammar/v1.0.0-rc.5xx
-#  BASE_FILE:    YiniLexerBase.py  # Target/language specific base file.
+  GRAMMAR_BASE: ./grammar/v1.0.0-rc.5xxxx
 
   PARSER_FILE:  "{{.GRAMMAR_BASE}}/YiniParser.g4"
   LEXER_FILE:   "{{.GRAMMAR_BASE}}/YiniLexer.g4"
@@ -26,7 +25,7 @@ tasks:
     cmds:
       - java -jar {{.ANTLR_JAR}} -help
 
-  start:
+  run-sample:
     desc: Start the project.
     cmds:
   #    - python src/main.py ./sample/basic.yini
@@ -64,16 +63,22 @@ tasks:
       - echo Done.
 
   check:
-    desc: Run all project checks.
+    desc: Run tests, linting, formatting checks, and type checks.
     cmds:
-      - task lint
-      - task typecheck
       - task test
+      - task lint
+      - task format-check
+      - task typecheck
+
+  test-relaxed:
+    desc: Run tests without promoting warnings to errors.
+    cmds:
+      - python -m pytest -v
 
   test:
     desc: Run tests
     cmds:
-      - python -m pytest -v
+      - python -m pytest -v -W error
 
   test-adapter:
     desc: Run the yini-test adapter against the sample basic YINI file
@@ -86,12 +91,22 @@ tasks:
       - python tools/yini_parser_adapter.py --input sample/basic.strict.yini --mode strict
       
   lint:
-    desc: Run Ruff linter
+    desc: Run Ruff lint checks.
     cmds:
-      - python -m ruff check src
+      - python -m ruff check .
+
+  format-check:
+    desc: Check code formatting with Ruff.
+    cmds:
+      - python -m ruff format --check .
+
+  format:
+    desc: Format code with Ruff.
+    cmds:
+      - python -m ruff format .
 
   typecheck:
-    desc: Run mypy type checking
+    desc: Run mypy type checks.
     cmds:
       - python -m mypy
 

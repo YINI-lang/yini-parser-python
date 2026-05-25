@@ -6,6 +6,7 @@ from ..api.errors import YiniParseError
 - Decoders converts tokens into its runtime value.
 """
 
+
 def decode_string_token(
     token_text: str,
     *,

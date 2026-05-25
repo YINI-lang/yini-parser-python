@@ -1,11 +1,10 @@
 """
-  Usage:
-    from yini_parser import load
+Usage:
+  from yini_parser import load
 
-    data = load("sample/basic.yini")
-    print(data["App"]["name"])
+  data = load("sample/basic.yini")
+  print(data["App"]["name"])
 """
-
 
 # src/main.py
 import sys

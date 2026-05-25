@@ -72,12 +72,12 @@ negativeFloat = -0.5
 
 
 def test_parses_basic_strings() -> None:
-    text = r'''
+    text = r"""
 ^ App
 name = "Demo App"
 single = 'hello'
 path = "\home\user\docs\report.docx"
-'''.lstrip()
+""".lstrip()
 
     result = loads(text)
 

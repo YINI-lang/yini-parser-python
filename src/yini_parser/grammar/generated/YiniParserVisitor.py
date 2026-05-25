@@ -1,4 +1,4 @@
-# Generated from ./grammar/v1.0.0-rc.5xx/YiniParser.g4 by ANTLR 4.13.2
+# Generated from ./grammar/v1.0.0-rc.5xxxx/YiniParser.g4 by ANTLR 4.13.2
 from antlr4 import *
 if "." in __name__:
     from .YiniParser import YiniParser
@@ -24,8 +24,23 @@ class YiniParserVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by YiniParser#terminal_trivia.
+    def visitTerminal_trivia(self, ctx:YiniParser.Terminal_triviaContext):
+        return self.visitChildren(ctx)
+
+
     # Visit a parse tree produced by YiniParser#stmt.
     def visitStmt(self, ctx:YiniParser.StmtContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by YiniParser#full_line_comment_stmt.
+    def visitFull_line_comment_stmt(self, ctx:YiniParser.Full_line_comment_stmtContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by YiniParser#disabled_line_stmt.
+    def visitDisabled_line_stmt(self, ctx:YiniParser.Disabled_line_stmtContext):
         return self.visitChildren(ctx)
 
 
@@ -44,8 +59,13 @@ class YiniParserVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by YiniParser#yini_mode.
-    def visitYini_mode(self, ctx:YiniParser.Yini_modeContext):
+    # Visit a parse tree produced by YiniParser#yini_directive.
+    def visitYini_directive(self, ctx:YiniParser.Yini_directiveContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by YiniParser#yini_mode_declaration.
+    def visitYini_mode_declaration(self, ctx:YiniParser.Yini_mode_declarationContext):
         return self.visitChildren(ctx)
 
 

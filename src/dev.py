@@ -7,6 +7,7 @@ from pprint import pprint
 
 from yini_parser.api import load, loads
 
+
 def main() -> None:
     print("*** dev run ***\n")
 

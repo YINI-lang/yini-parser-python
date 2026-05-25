@@ -13,7 +13,7 @@ from ..grammar.generated.YiniLexer import YiniLexer
 from ..grammar.generated.YiniParser import YiniParser
 
 
-def loads(text: str, strict: bool=False) -> dict[str, Any]:
+def loads(text: str, strict: bool = False) -> dict[str, Any]:
     """
     Parse YINI text and return the resulting Python dictionary.
     """
@@ -22,7 +22,7 @@ def loads(text: str, strict: bool=False) -> dict[str, Any]:
     return _parse_input_stream(input_stream, strict=strict)
 
 
-def load(path: str, strict: bool=False) -> dict[str, Any]:
+def load(path: str, strict: bool = False) -> dict[str, Any]:
     """
     Parse a YINI file from disk and return the resulting Python dictionary.
     """
@@ -33,9 +33,8 @@ def load(path: str, strict: bool=False) -> dict[str, Any]:
 
 
 def _parse_input_stream(
-        input_stream: InputStream | FileStream,
-        strict: bool
-    ) -> dict[str, Any]:
+    input_stream: InputStream | FileStream, strict: bool
+) -> dict[str, Any]:
     lexer = YiniLexer(input_stream)
     stream = CommonTokenStream(lexer)
     parser = YiniParser(stream)
@@ -43,13 +42,17 @@ def _parse_input_stream(
     tree = parser.yini()
 
     if parser.getNumberOfSyntaxErrors() > 0:
-#        raise ValueError(f"Failed to parse YINI input: {parser.getNumberOfSyntaxErrors()} syntax error(s).")
-        raise YiniParseError(f"Failed to parse YINI input: {parser.getNumberOfSyntaxErrors()} syntax error(s).")
-    
+        #        raise ValueError(f"Failed to parse YINI input: {parser.getNumberOfSyntaxErrors()} syntax error(s).")
+        raise YiniParseError(
+            f"Failed to parse YINI input: {parser.getNumberOfSyntaxErrors()} syntax error(s)."
+        )
+
     visitor = YiniBuilderVisitor(strict=strict)
     result = visitor.visit(tree)
 
     if not isinstance(result, dict):
-        raise TypeError(f"Expected parsed result to be a dict, got {type(result).__name__}.")
+        raise TypeError(
+            f"Expected parsed result to be a dict, got {type(result).__name__}."
+        )
 
     return result

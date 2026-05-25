@@ -2,6 +2,7 @@
 from ..api.errors import YiniParseError
 from ..utils.text import strip_backticks
 
+
 def parse_section_head(
     raw_text: str,
     *,
@@ -91,6 +92,17 @@ def parse_section_head(
     if not name:
         raise YiniParseError(
             f"Missing section name after section marker {marker!r}.",
+            line=line,
+            column=column,
+        )
+
+    marker_part = text.split(maxsplit=1)[0]
+
+    is_numeric_shorthand = any(ch.isdigit() for ch in marker_part)
+
+    if not is_numeric_shorthand and level > 9:
+        raise YiniParseError(
+            "Repeated section markers support levels 1-9 only. Use numeric shorthand for level 10 and deeper.",
             line=line,
             column=column,
         )

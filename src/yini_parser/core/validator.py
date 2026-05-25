@@ -33,10 +33,7 @@ class YiniValidator:
             True  -> caller may keep/replace the value
             False -> caller should ignore the new value
         """
-        message = (
-            f"Duplicate key {key!r} ignored. "
-            "The first value is kept."
-        )
+        message = f"Duplicate key {key!r} ignored. The first value is kept."
 
         if self.strict:
             raise YiniParseError(
@@ -68,10 +65,7 @@ class YiniValidator:
             True  -> caller may reuse/merge the existing section
             False -> caller should ignore the new section block
         """
-        message = (
-            f"Duplicate section {name!r} ignored. "
-            "The first section is kept."
-        )
+        message = f"Duplicate section {name!r} ignored. The first section is kept."
 
         if self.strict:
             raise YiniParseError(

@@ -1,7 +1,10 @@
 # tests/test_sections.py
 from __future__ import annotations
 
+import pytest
+
 from yini_parser.api.load import loads
+from yini_parser.api.errors import YiniParseError
 
 
 def test_parses_single_top_level_section() -> None:
@@ -231,3 +234,98 @@ port = 5432
             },
         },
     }
+
+
+def test_parses_repeated_section_markers_up_to_level_9() -> None:
+    text = """
+^ L1
+^^ L2
+^^^ L3
+^^^^ L4
+^^^^^ L5
+^^^^^^ L6
+^^^^^^^ L7
+^^^^^^^^ L8
+^^^^^^^^^ L9
+value = "deep"
+""".lstrip()
+
+    result = loads(text)
+
+    assert (
+        result["L1"]["L2"]["L3"]["L4"]["L5"]["L6"]["L7"]["L8"]["L9"]["value"] == "deep"
+    )
+
+
+def test_rejects_section_level_jump() -> None:
+    text = """
+^ Root
+^^^ GrandChild
+value = true
+""".lstrip()
+
+    with pytest.raises(YiniParseError):
+        loads(text)
+
+
+def test_rejects_starting_with_repeated_section_markers_at_level_10() -> None:
+    text = """
+^^^^^^^^^^ TooDeep
+value = true
+""".lstrip()
+
+    with pytest.raises(YiniParseError):
+        loads(text)
+
+
+def test_rejects_repeated_section_markers_at_level_10() -> None:
+    text = """
+^ L1
+^^ L2
+^^^ L3
+^^^^ L4
+^^^^^ L5
+^^^^^^ L6
+^^^^^^^ L7
+^^^^^^^^ L8
+^^^^^^^^^ L9
+^^^^^^^^^^ L10
+value = true
+""".lstrip()
+
+    with pytest.raises(YiniParseError):
+        loads(text)
+
+
+def test_parses_numeric_section_level_10_shorthand() -> None:
+    text = """
+^ Root
+^2 Two
+^3 Three
+^4 Four
+^5 Five
+^6 Six
+^7 Seven
+^8 Eight
+^9 Nine
+^10 Ten
+value = true
+""".lstrip()
+
+    result = loads(text)
+
+    current = result["Root"]
+    for name in [
+        "Two",
+        "Three",
+        "Four",
+        "Five",
+        "Six",
+        "Seven",
+        "Eight",
+        "Nine",
+        "Ten",
+    ]:
+        current = current[name]
+
+    assert current["value"] is True

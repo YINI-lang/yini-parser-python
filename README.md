@@ -21,7 +21,7 @@ yini-parser
 ```
 
 The Python import name is:
-```
+```python
 import yini_parser
 ```
 
@@ -29,7 +29,7 @@ import yini_parser
 
 ## Quick Start
 
-Example YINI file:
+Example lenient-mode (default) YINI file:
 
 ```yini
 // A small, practical YINI config.
@@ -39,13 +39,13 @@ Example YINI file:
 name = "Demo App"
 version = 1.2
 features = ["search", "logs"]
-debug = false    // on/off, yes/no would work too.
+debug = false    // off/no would work too.
 pageSize = 25
 
-    // Another section, nested under App.
+    // Nested under App. Indentation is optional and used for readability.
     ^^ Server
     host = "localhost"
-    port = 8080    # Can comment with # too.
+    port = 8080    # YINI also supports # comments.
     useTLS = off
 ```
 
@@ -121,20 +121,42 @@ or, if using the project Taskfile:
 task install-dev
 ```
 
+Generate the ANTLR parser sources:
+
+```bash
+task antlr
+```
+
+Run the full project check:
+
+```bash
+task check
+```
+
+This runs:
+- The test suite with warnings treated as errors,
+- Ruff lint checks,
+- Ruff formatting checks,
+- mypy type checking.
+
 ---
 
 ## Tests
 
-The `tests/` directory contains a focused implementation-local test suite, including:
-- Tests for the public API.
-- Key semantic tests.
-- Smoke/golden tests.
-- Parser behavior tests for comments, values, sections, strict mode, conflicts, inline objects, and string concatenation.
+The `tests/` directory contains a focused implementation-local test suite, including tests for:
+- The public loading API.
+- Values, numbers, strings, lists, and inline objects, including lenient `=` separators and strict `:` enforcement.
+- Sections, nested sections, section depth, and section marker separators.
+- Strict and lenient parser behavior.
+- `@yini strict` and `@yini lenient` mode declarations.
+- Duplicate keys, repeated sections, and key/section collisions.
+- String concatenation.
+- Comments, ignored lines, smoke fixtures, and warning/error behavior.
 
 Run the test suite with:
 
 ```bash
-python -m pytest -v
+python -m pytest -v -W error
 ```
 
 or, if using the project Taskfile:

@@ -45,6 +45,7 @@ class YiniBuilderVisitor(YiniParserVisitor):
         self._ignored_section_level: int | None = None
         self._top_level_section_count = 0
         self._validator = YiniValidator(strict=strict)
+        # self._root_member_count = 0
 
     # ------------------------------------------------------------
     # Public/root
@@ -155,30 +156,31 @@ class YiniBuilderVisitor(YiniParserVisitor):
         return None
 
     def visitDirective(self, ctx: YiniParser.DirectiveContext) -> None:
-        """
-        Handles parser directives.
+        yini_directive_ctx = ctx.yini_directive()
+        if yini_directive_ctx is not None:
+            return self.visit(yini_directive_ctx)
 
-        Important:
-        - `@yini strict` and `@yini lenient` are document-mode declarations.
-        - They do not silently switch parser mode.
-        - IMPORTANT: Parser mode is selected by the caller when the parser is invoked.
-        - If the declared document mode does not match the selected parser mode,
-        parsing fails.
-        """
-
-        # `@include` is recognized by the grammar, but currently has no runtime
-        # behavior in this parser implementation.
-        if ctx.YINI_TOKEN() is None:
+        # @include is reserved/recognized but has no runtime behavior yet.
+        if ctx.INCLUDE_TOKEN() is not None:
             return None
 
-        mode_ctx = getattr(ctx, "yini_mode", lambda: None)()
+        return None
 
-        # Plain `@yini` is valid and does not declare a required mode.
+    def visitYini_directive(self, ctx: YiniParser.Yini_directiveContext) -> None:
+        mode_ctx = ctx.yini_mode_declaration()
+
+        # Plain @yini is valid and declares no mode.
         if mode_ctx is None:
             return None
 
-        mode = mode_ctx.getText().strip().lower()
-        line, column = ctx_location(mode_ctx)
+        return self.visit(mode_ctx)
+
+    def visitYini_mode_declaration(
+        self,
+        ctx: YiniParser.Yini_mode_declarationContext,
+    ) -> None:
+        mode = ctx.KEY().getText().strip().lower()
+        line, column = ctx_location(ctx)
 
         if mode not in {"strict", "lenient"}:
             raise YiniParseError(
@@ -221,7 +223,9 @@ class YiniBuilderVisitor(YiniParserVisitor):
             column=column,
         )
 
-    def visitInvalid_section_stmt(self, ctx: YiniParser.Invalid_section_stmtContext) -> None:
+    def visitInvalid_section_stmt(
+        self, ctx: YiniParser.Invalid_section_stmtContext
+    ) -> None:
         line, column = ctx_location(ctx)
         raise YiniParseError(
             f"Invalid section statement: {ctx.getText()!r}",
@@ -243,6 +247,13 @@ class YiniBuilderVisitor(YiniParserVisitor):
 
         line = ctx.start.line if ctx.start is not None else None
         column = ctx.start.column + 1 if ctx.start is not None else None
+
+        if self._strict and target is self._root:
+            raise YiniParseError(
+                "Top-level members are not allowed in strict mode.",
+                line=line,
+                column=column,
+            )
 
         # Assignment-level key/section collision:
         # if an earlier section already exists with this name, the first definition wins.
@@ -273,8 +284,17 @@ class YiniBuilderVisitor(YiniParserVisitor):
         key = ctx.KEY().getText()
         value_ctx = ctx.value()
 
-        # In grammar, empty value is allowed and intended to mean null.
-        value = self.visit(value_ctx) if value_ctx is not None else None
+        if value_ctx is None:
+            if self._strict:
+                line, column = ctx_location(ctx)
+                raise YiniParseError(
+                    "Strict mode does not allow empty member values. Use 'null' explicitly.",
+                    line=line,
+                    column=column,
+                )
+            return key, None
+
+        value = self.visit(value_ctx)
         return key, value
 
     # ------------------------------------------------------------
@@ -320,22 +340,45 @@ class YiniBuilderVisitor(YiniParserVisitor):
         return self.visitChildren(ctx)
 
     def visitConcat_expression(self, ctx: YiniParser.Concat_expressionContext) -> str:
-        first_token = ctx.STRING().getSymbol()
-        line = first_token.line
-        column = first_token.column + 1
+        operands = []
 
-        parts: list[str] = [
-            decode_string_token(
-                ctx.STRING().getText(),
+        first_token = ctx.STRING()
+
+        if first_token is None:
+            line, column = ctx_location(ctx)
+            raise YiniParseError(
+                "Invalid concatenation expression: a concatenation expression must begin with a string literal.",
                 line=line,
                 column=column,
             )
-        ]
+
+        line, column = ctx_location(ctx)
+
+        operands.append(
+            decode_string_token(
+                first_token.getText(),
+                line=line,
+                column=column,
+            )
+        )
 
         for tail_ctx in ctx.concat_tail():
-            parts.append(self.visit(tail_ctx))
+            operands.append(self.visit(tail_ctx))
 
-        return "".join(parts)
+        if self._strict:
+            for operand in operands:
+                if not isinstance(operand, str):
+                    line, column = ctx_location(ctx)
+                    raise YiniParseError(
+                        "Invalid strict-mode concatenation expression: all concatenation operands must be string literals.",
+                        line=line,
+                        column=column,
+                    )
+
+        return "".join(
+            self._stringify_concat_operand(operand)
+            for operand in operands
+        )
 
     def visitConcat_tail(self, ctx: YiniParser.Concat_tailContext) -> str:
         return self.visit(ctx.concat_operand())
@@ -360,21 +403,30 @@ class YiniBuilderVisitor(YiniParserVisitor):
 
         number_token = ctx.NUMBER()
         if number_token is not None:
-            return number_token.getText()
+            value = parse_number_literal(
+                number_token.getText(),
+                line=line,
+                column=column,
+            )
+            return self._number_to_canonical_string(value)
 
         true_token = ctx.BOOLEAN_TRUE()
         if true_token is not None:
-            return true_token.getText()
+            return "true"
 
         false_token = ctx.BOOLEAN_FALSE()
         if false_token is not None:
-            return false_token.getText()
+            return "false"
 
         null_token = ctx.NULL()
         if null_token is not None:
-            return null_token.getText()
+            return "null"
 
-        return ""
+        raise YiniParseError(
+            "Invalid string concatenation operand.",
+            line=line,
+            column=column,
+        )
 
     def visitString_literal(self, ctx: YiniParser.String_literalContext) -> str:
         line, column = ctx_location(ctx)
@@ -397,7 +449,7 @@ class YiniBuilderVisitor(YiniParserVisitor):
             ctx.getText().strip(),
             line=line,
             column=column,
-        )    
+        )
 
     def visitList_literal(self, ctx: YiniParser.List_literalContext) -> list[Any]:
         if ctx.EMPTY_LIST() is not None:
@@ -410,9 +462,19 @@ class YiniBuilderVisitor(YiniParserVisitor):
         return self.visit(elements_ctx)
 
     def visitElements(self, ctx: YiniParser.ElementsContext) -> list[Any]:
+        if self._strict and self._elements_has_trailing_comma(ctx):
+            line, column = self._last_comma_location(ctx)
+            raise YiniParseError(
+                "Trailing commas in lists are not allowed in strict mode.",
+                line=line,
+                column=column,
+            )
+
         return [self.visit(value_ctx) for value_ctx in ctx.value()]
 
-    def visitObject_literal(self, ctx: YiniParser.Object_literalContext) -> dict[str, Any]:
+    def visitObject_literal(
+        self, ctx: YiniParser.Object_literalContext
+    ) -> dict[str, Any]:
         if ctx.EMPTY_OBJECT() is not None:
             return {}
 
@@ -422,14 +484,26 @@ class YiniBuilderVisitor(YiniParserVisitor):
 
         return self.visit(object_members_ctx)
 
-    def visitObject_members(self, ctx: YiniParser.Object_membersContext) -> dict[str, Any]:
+    def visitObject_members(
+        self, ctx: YiniParser.Object_membersContext
+    ) -> dict[str, Any]:
+        if self._strict and self._object_members_has_trailing_comma(ctx):
+            line, column = self._last_comma_location(ctx)
+            raise YiniParseError(
+                "Trailing commas in inline objects are not allowed in strict mode.",
+                line=line,
+                column=column,
+            )
+
         result: dict[str, Any] = {}
 
         for member_ctx in ctx.object_member():
             key, value = self.visit(member_ctx)
-            
+
             line = member_ctx.start.line if member_ctx.start is not None else None
-            column = member_ctx.start.column + 1 if member_ctx.start is not None else None
+            column = (
+                member_ctx.start.column + 1 if member_ctx.start is not None else None
+            )
 
             if key in result:
                 if not self._validator.handle_duplicate_key(
@@ -440,9 +514,12 @@ class YiniBuilderVisitor(YiniParserVisitor):
                     continue
 
             result[key] = value
+
         return result
 
-    def visitObject_member(self, ctx: YiniParser.Object_memberContext) -> tuple[str, Any]:
+    def visitObject_member(
+        self, ctx: YiniParser.Object_memberContext
+    ) -> tuple[str, Any]:
         """
         - Lenient mode allows `=`.
         - Strict mode rejects `=` inside inline objects.
@@ -453,7 +530,9 @@ class YiniBuilderVisitor(YiniParserVisitor):
         value = self.visit(ctx.value())
 
         separator_ctx = ctx.object_member_separator()
-        separator = separator_ctx.getText().strip() if separator_ctx is not None else ":"
+        separator = (
+            separator_ctx.getText().strip() if separator_ctx is not None else ":"
+        )
 
         if self._strict and separator == "=":
             line, column = ctx_location(separator_ctx or ctx)
@@ -482,7 +561,18 @@ class YiniBuilderVisitor(YiniParserVisitor):
         line: int | None = None,
         column: int | None = None,
     ) -> None:
-            
+
+        # Root-level section is level 1.
+        # Level N means nesting depth N.
+        current_depth = len(self._section_stack)
+
+        if level > current_depth + 1:
+            raise YiniParseError(
+                f"Section level jumps are not allowed. Expected level {current_depth + 1}, got level {level}.",
+                line=line,
+                column=column,
+            )
+
         # Root-level section is level 1.
         # level N means nesting depth N.
         while len(self._section_stack) >= level:
@@ -524,3 +614,65 @@ class YiniBuilderVisitor(YiniParserVisitor):
         ):
             self._ignored_section_level = level
             return
+
+    def _number_to_canonical_string(self, value: int | float) -> str:
+        if isinstance(value, bool):
+            # Defensive only; bool is a subclass of int in Python.
+            return "true" if value else "false"
+
+        if isinstance(value, int):
+            return str(value)
+
+        if isinstance(value, float):
+            # Reasonable first version. You can refine later if needed.
+            return str(value)
+
+        return str(value)
+
+    # def _has_trailing_comma(self, ctx: Any) -> bool:
+    #     """
+    #     Returns True when a list/object member sequence ends with a comma.
+
+    #     This relies on the generated grammar shape where:
+    #     - ctx.COMMA() returns all comma tokens.
+    #     - ctx.value() or ctx.object_member() returns real elements/members only.
+    #     - A trailing comma means there are at least as many commas as values/members.
+    #     """
+
+    #     commas = ctx.COMMA()
+
+    #     if hasattr(ctx, "value"):
+    #         items = ctx.value()
+    #     elif hasattr(ctx, "object_member"):
+    #         items = ctx.object_member()
+    #     else:
+    #         return False
+
+    #     return len(commas) >= len(items)
+
+    def _last_comma_location(self, ctx: Any) -> tuple[int | None, int | None]:
+        commas = ctx.COMMA()
+
+        if not commas:
+            return None, None
+
+        symbol = commas[-1].getSymbol()
+        return symbol.line, symbol.column + 1
+
+    def _elements_has_trailing_comma(self, ctx: YiniParser.ElementsContext) -> bool:
+        return len(ctx.COMMA()) >= len(ctx.value())
+
+    def _object_members_has_trailing_comma(
+        self,
+        ctx: YiniParser.Object_membersContext,
+    ) -> bool:
+        return len(ctx.COMMA()) >= len(ctx.object_member())
+
+    def _stringify_concat_operand(self, value: Any) -> str:
+        if isinstance(value, bool):
+            return "true" if value else "false"
+
+        if value is None:
+            return "null"
+
+        return str(value)

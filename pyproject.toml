@@ -1,13 +1,16 @@
 [project]
 name = "yini-parser"
-version = "0.1.0a2"
+version = "0.1.0a3"
 description = "Official Python parser for YINI, an INI-inspired, indentation-insensitive configuration format with clear nested sections and explicit structure."
 readme = "README.md"
 requires-python = ">=3.10"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
 authors = [
-  { name = "YINI-lang project" }
+  { name = "Marko K. Seppänen" }
+]
+maintainers = [
+  { name = "Marko K. Seppänen" }
 ]
 keywords = [
   "yini",
@@ -71,3 +74,8 @@ exclude = [
 ]
 ignore_missing_imports = true
 explicit_package_bases = true
+
+[[tool.mypy.overrides]]
+module = "yini_parser.grammar.generated.*"
+follow_imports = "skip"
+ignore_errors = true

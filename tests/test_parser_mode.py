@@ -94,7 +94,9 @@ name = "Demo App"
     }
 
 
-def test_plain_yini_directive_allows_strict_parser_mode_when_document_is_strict_valid() -> None:
+def test_plain_yini_directive_allows_strict_parser_mode_when_document_is_strict_valid() -> (
+    None
+):
     text = """
 @yini
 
@@ -111,3 +113,15 @@ name = "Demo App"
             "name": "Demo App",
         },
     }
+
+
+def test_yini_mode_declaration_rejects_unknown_mode() -> None:
+    text = """
+@yini banana
+
+^ App
+name = "Demo"
+""".lstrip()
+
+    with pytest.raises(YiniParseError):
+        loads(text)

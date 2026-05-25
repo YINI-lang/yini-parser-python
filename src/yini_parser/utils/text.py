@@ -2,6 +2,7 @@
 
 from typing import Any
 
+
 def normalize_newlines(value: Any) -> Any:
     if isinstance(value, str):
         return value.replace("\r\n", "\n").replace("\r", "\n")
@@ -37,4 +38,3 @@ def strip_backticks(text: str) -> str:
     if len(text) >= 2 and text[0] == "`" and text[-1] == "`":
         return text[1:-1]
     return text
-    

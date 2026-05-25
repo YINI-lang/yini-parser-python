@@ -18,6 +18,7 @@ These rules apply:
 - In strict mode, duplicate keys, duplicate section names, and key/section name collisions MUST result in an error.
 """
 
+
 def test_duplicate_key_first_value_wins_in_lenient_mode() -> None:
     text = """
 ^ App
@@ -25,7 +26,8 @@ name = "First"
 name = "Second"
 """.lstrip()
 
-    result = loads(text)
+    with pytest.warns(YiniParseWarning, match="Duplicate key"):
+        result = loads(text)
 
     assert result == {
         "App": {
@@ -41,7 +43,8 @@ pageSize = 10
 pageSize = 25
 """.lstrip()
 
-    result = loads(text)
+    with pytest.warns(YiniParseWarning, match="Duplicate key"):
+        result = loads(text)
 
     assert result == {
         "App": {
@@ -59,7 +62,8 @@ name = "Demo"
 debug = true
 """.lstrip()
 
-    result = loads(text)
+    with pytest.warns(YiniParseWarning, match="Duplicate section"):
+        result = loads(text)
 
     assert result == {
         "App": {
@@ -78,7 +82,8 @@ host = "localhost"
 port = 8080
 """.lstrip()
 
-    result = loads(text)
+    with pytest.warns(YiniParseWarning, match="Duplicate section"):
+        result = loads(text)
 
     assert result == {
         "App": {
@@ -89,7 +94,9 @@ port = 8080
     }
 
 
-def test_key_then_section_name_collision_first_definition_wins_in_lenient_mode() -> None:
+def test_key_then_section_name_collision_first_definition_wins_in_lenient_mode() -> (
+    None
+):
     text = """
 ^ App
 Server = "localhost"
@@ -98,7 +105,8 @@ Server = "localhost"
 port = 8080
 """.lstrip()
 
-    result = loads(text)
+    with pytest.warns(YiniParseWarning, match="Name collision"):
+        result = loads(text)
 
     assert result == {
         "App": {
@@ -107,7 +115,9 @@ port = 8080
     }
 
 
-def test_section_then_key_name_collision_first_definition_wins_in_lenient_mode() -> None:
+def test_section_then_key_name_collision_first_definition_wins_in_lenient_mode() -> (
+    None
+):
     text = """
 ^ App
 ^^ Server
@@ -117,7 +127,8 @@ port = 8080
 Server = "localhost"
 """.lstrip()
 
-    result = loads(text)
+    with pytest.warns(YiniParseWarning, match="Duplicate section"):
+        result = loads(text)
 
     assert result == {
         "App": {
@@ -126,6 +137,7 @@ Server = "localhost"
             },
         },
     }
+
 
 def test_duplicate_key_should_warn_in_lenient_mode() -> None:
     text = """
