@@ -5,9 +5,11 @@ Transform / build_model -> visitor converts tree to Python values
 # src/yini_parser/core/yini_builder_visitor.py
 from __future__ import annotations
 
+import warnings
 from typing import Any
 
 from ..api.errors import YiniParseError
+from ..api.warnings import YiniParseWarning
 from ..grammar.generated.YiniParser import YiniParser
 from ..grammar.generated.YiniParserVisitor import YiniParserVisitor
 from ..utils.antlr import ctx_location
@@ -197,11 +199,13 @@ class YiniBuilderVisitor(YiniParserVisitor):
             )
 
         if mode == "lenient" and self._strict:
-            raise YiniParseError(
+            self._add_warning(
                 "This document declares '@yini lenient', but the parser is running in strict mode.",
                 line=line,
                 column=column,
+                code="YINI_MODE_MISMATCH",
             )
+            return None
 
         return None
 
@@ -676,3 +680,21 @@ class YiniBuilderVisitor(YiniParserVisitor):
             return "null"
 
         return str(value)
+
+    def _add_warning(
+        self,
+        message: str,
+        *,
+        line: int | None = None,
+        column: int | None = None,
+        code: str | None = None,
+    ) -> None:
+        warnings.warn(
+            YiniParseWarning(
+                message,
+                line=line,
+                column=column,
+                code=code,
+            ),
+            stacklevel=2,
+        )

@@ -1,9 +1,11 @@
 # CHANGELOG
 
-## 0.1.0a3 - 2026-05-25
+## 0.1.0a3 - 2026-05-27
 - Regenerated the ANTLR-generated Python parser sources from the updated YINI grammar.
-- Updated the parser visitor to match the latest RC5/WIP grammar structure.
-- Added support for `@yini strict` and `@yini lenient` mode declarations, including mismatch and unknown-mode validation.
+- Updated the parser visitor to match the latest RC.6 grammar structure.
+- Added support for `@yini strict` and `@yini lenient` mode declarations, including unknown-mode validation and mode-mismatch diagnostics:
+  - `@yini strict` parsed in lenient mode is an error.
+  - `@yini lenient` parsed in strict mode is valid but emits a warning.
 - Updated strict/lenient validation:
   - Strict mode now rejects empty member values and trailing commas in lists or inline objects.
   - Lenient mode continues to allow empty member values and trailing commas.

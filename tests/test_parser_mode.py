@@ -4,6 +4,7 @@ from __future__ import annotations
 import pytest
 
 from yini_parser.api.errors import YiniParseError
+from yini_parser.api.warnings import YiniParseWarning
 from yini_parser.api.load import loads
 
 
@@ -60,7 +61,7 @@ name = "Demo App"
     }
 
 
-def test_yini_lenient_declaration_rejects_strict_parser_mode() -> None:
+def test_yini_lenient_declaration_allows_strict_parser_mode_1() -> None:
     text = """
 @yini lenient
 
@@ -70,11 +71,40 @@ name = "Demo App"
 /END
 """.lstrip()
 
-    with pytest.raises(
-        YiniParseError,
+    with pytest.warns(
+        Warning,
         match="declares '@yini lenient'.*strict mode",
     ):
-        loads(text, strict=True)
+        result = loads(text, strict=True)
+
+    assert result == {
+        "App": {
+            "name": "Demo App",
+        },
+    }
+
+
+def test_yini_lenient_declaration_allows_strict_parser_mode_2() -> None:
+    text = """
+@yini lenient
+
+^ App
+name = "Demo App"
+
+/END
+""".lstrip()
+
+    with pytest.warns(
+        YiniParseWarning,
+        match="declares '@yini lenient'.*strict mode",
+    ):
+        result = loads(text, strict=True)
+
+    assert result == {
+        "App": {
+            "name": "Demo App",
+        },
+    }
 
 
 def test_plain_yini_directive_allows_lenient_parser_mode() -> None:
