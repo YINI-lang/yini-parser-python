@@ -53,7 +53,7 @@ class YiniBuilderVisitor(YiniParserVisitor):
     # Public/root
     # ------------------------------------------------------------
 
-    def visitYini(self, ctx: YiniParser.YiniContext) -> dict[str, Any]:
+    def visit_yini(self, ctx: YiniParser.YiniContext) -> dict[str, Any]:
         for stmt_ctx in ctx.stmt():
             self.visit(stmt_ctx)
 
@@ -80,7 +80,7 @@ class YiniBuilderVisitor(YiniParserVisitor):
     # Statements
     # ------------------------------------------------------------
 
-    def visitStmt(self, ctx: YiniParser.StmtContext) -> Any:
+    def visit_stmt(self, ctx: YiniParser.StmtContext) -> Any:
         section_token = ctx.SECTION_HEAD()
         if section_token is not None:
             symbol = section_token.getSymbol()
@@ -139,7 +139,7 @@ class YiniBuilderVisitor(YiniParserVisitor):
 
         return None
 
-    def visitMeta_stmt(self, ctx: YiniParser.Meta_stmtContext) -> None:
+    def visit_meta_stmt(self, ctx: YiniParser.Meta_stmtContext) -> None:
         """
         Handles metadata-level statements.
 
@@ -163,7 +163,7 @@ class YiniBuilderVisitor(YiniParserVisitor):
 
         return None
 
-    def visitDirective(self, ctx: YiniParser.DirectiveContext) -> None:
+    def visit_directive(self, ctx: YiniParser.DirectiveContext) -> None:
         yini_directive_ctx = ctx.yini_directive()
         if yini_directive_ctx is not None:
             return self.visit(yini_directive_ctx)
@@ -174,7 +174,7 @@ class YiniBuilderVisitor(YiniParserVisitor):
 
         return None
 
-    def visitYini_directive(self, ctx: YiniParser.Yini_directiveContext) -> None:
+    def visit_yini_directive(self, ctx: YiniParser.Yini_directiveContext) -> None:
         mode_ctx = ctx.yini_mode_declaration()
 
         # Plain @yini is valid and declares no mode.
@@ -183,7 +183,7 @@ class YiniBuilderVisitor(YiniParserVisitor):
 
         return self.visit(mode_ctx)
 
-    def visitYini_mode_declaration(
+    def visit_yini_mode_declaration(
         self,
         ctx: YiniParser.Yini_mode_declarationContext,
     ) -> None:
@@ -215,7 +215,7 @@ class YiniBuilderVisitor(YiniParserVisitor):
 
         return None
 
-    def visitAnnotation(self, ctx: YiniParser.AnnotationContext) -> None:
+    def visit_annotation(self, ctx: YiniParser.AnnotationContext) -> None:
         """
         Handles metadata annotations.
 
@@ -225,7 +225,7 @@ class YiniBuilderVisitor(YiniParserVisitor):
 
         return None
 
-    def visitBad_meta_text(self, ctx: YiniParser.Bad_meta_textContext) -> None:
+    def visit_bad_meta_text(self, ctx: YiniParser.Bad_meta_textContext) -> None:
         line, column = ctx_location(ctx)
         raise YiniParseError(
             f"Invalid YINI directive or metadata statement: {ctx.getText()!r}",
@@ -233,7 +233,7 @@ class YiniBuilderVisitor(YiniParserVisitor):
             column=column,
         )
 
-    def visitInvalid_section_stmt(
+    def visit_invalid_section_stmt(
         self, ctx: YiniParser.Invalid_section_stmtContext
     ) -> None:
         line, column = ctx_location(ctx)
@@ -243,7 +243,7 @@ class YiniBuilderVisitor(YiniParserVisitor):
             column=column,
         )
 
-    def visitBad_member(self, ctx: YiniParser.Bad_memberContext) -> None:
+    def visit_bad_member(self, ctx: YiniParser.Bad_memberContext) -> None:
         line, column = ctx_location(ctx)
         raise YiniParseError(
             f"Invalid member statement: {ctx.getText()!r}",
@@ -251,7 +251,7 @@ class YiniBuilderVisitor(YiniParserVisitor):
             column=column,
         )
 
-    def visitAssignment(self, ctx: YiniParser.AssignmentContext) -> None:
+    def visit_assignment(self, ctx: YiniParser.AssignmentContext) -> None:
         key, value = self.visit(ctx.member())
         target = self._current_container()
 
@@ -290,7 +290,7 @@ class YiniBuilderVisitor(YiniParserVisitor):
         target[key] = value
         return None
 
-    def visitMember(self, ctx: YiniParser.MemberContext) -> tuple[str, Any]:
+    def visit_member(self, ctx: YiniParser.MemberContext) -> tuple[str, Any]:
         key = ctx.KEY().getText()
         value_ctx = ctx.value()
 
@@ -311,7 +311,7 @@ class YiniBuilderVisitor(YiniParserVisitor):
     # Values
     # ------------------------------------------------------------
 
-    def visitValue(self, ctx: YiniParser.ValueContext) -> Any:
+    def visit_value(self, ctx: YiniParser.ValueContext) -> Any:
         concat_ctx = getattr(ctx, "concat_expression", lambda: None)()
         if concat_ctx is not None:
             return self.visit(concat_ctx)
@@ -330,7 +330,7 @@ class YiniBuilderVisitor(YiniParserVisitor):
 
         return None
 
-    def visitScalar_value(self, ctx: YiniParser.Scalar_valueContext) -> Any:
+    def visit_scalar_value(self, ctx: YiniParser.Scalar_valueContext) -> Any:
         string_ctx = getattr(ctx, "string_literal", lambda: None)()
         if string_ctx is not None:
             return self.visit(string_ctx)
@@ -349,7 +349,7 @@ class YiniBuilderVisitor(YiniParserVisitor):
 
         return self.visitChildren(ctx)
 
-    def visitConcat_expression(self, ctx: YiniParser.Concat_expressionContext) -> str:
+    def visit_concat_expression(self, ctx: YiniParser.Concat_expressionContext) -> str:
         operands = []
 
         first_token = ctx.STRING()
@@ -385,15 +385,12 @@ class YiniBuilderVisitor(YiniParserVisitor):
                         column=column,
                     )
 
-        return "".join(
-            self._stringify_concat_operand(operand)
-            for operand in operands
-        )
+        return "".join(self._stringify_concat_operand(operand) for operand in operands)
 
-    def visitConcat_tail(self, ctx: YiniParser.Concat_tailContext) -> str:
+    def visit_concat_tail(self, ctx: YiniParser.Concat_tailContext) -> str:
         return self.visit(ctx.concat_operand())
 
-    def visitConcat_operand(self, ctx: YiniParser.Concat_operandContext) -> str:
+    def visit_concat_operand(self, ctx: YiniParser.Concat_operandContext) -> str:
         line, column = ctx_location(ctx)
 
         string_token = ctx.STRING()
@@ -438,7 +435,7 @@ class YiniBuilderVisitor(YiniParserVisitor):
             column=column,
         )
 
-    def visitString_literal(self, ctx: YiniParser.String_literalContext) -> str:
+    def visit_string_literal(self, ctx: YiniParser.String_literalContext) -> str:
         line, column = ctx_location(ctx)
         return decode_string_token(
             ctx.getText(),
@@ -446,14 +443,16 @@ class YiniBuilderVisitor(YiniParserVisitor):
             column=column,
         )
 
-    def visitNull_literal(self, ctx: YiniParser.Null_literalContext) -> None:
+    def visit_null_literal(self, ctx: YiniParser.Null_literalContext) -> None:
         return None
 
-    def visitBoolean_literal(self, ctx: YiniParser.Boolean_literalContext) -> bool:
+    def visit_boolean_literal(self, ctx: YiniParser.Boolean_literalContext) -> bool:
         text = ctx.getText().strip().lower()
         return text in {"true", "on", "yes"}
 
-    def visitNumber_literal(self, ctx: YiniParser.Number_literalContext) -> int | float:
+    def visit_number_literal(
+        self, ctx: YiniParser.Number_literalContext
+    ) -> int | float:
         line, column = ctx_location(ctx)
         return parse_number_literal(
             ctx.getText().strip(),
@@ -461,7 +460,7 @@ class YiniBuilderVisitor(YiniParserVisitor):
             column=column,
         )
 
-    def visitList_literal(self, ctx: YiniParser.List_literalContext) -> list[Any]:
+    def visit_list_literal(self, ctx: YiniParser.List_literalContext) -> list[Any]:
         if ctx.EMPTY_LIST() is not None:
             return []
 
@@ -471,7 +470,7 @@ class YiniBuilderVisitor(YiniParserVisitor):
 
         return self.visit(elements_ctx)
 
-    def visitElements(self, ctx: YiniParser.ElementsContext) -> list[Any]:
+    def visit_elements(self, ctx: YiniParser.ElementsContext) -> list[Any]:
         if self._strict and self._elements_has_trailing_comma(ctx):
             line, column = self._last_comma_location(ctx)
             raise YiniParseError(
@@ -482,7 +481,7 @@ class YiniBuilderVisitor(YiniParserVisitor):
 
         return [self.visit(value_ctx) for value_ctx in ctx.value()]
 
-    def visitObject_literal(
+    def visit_object_literal(
         self, ctx: YiniParser.Object_literalContext
     ) -> dict[str, Any]:
         if ctx.EMPTY_OBJECT() is not None:
@@ -494,7 +493,7 @@ class YiniBuilderVisitor(YiniParserVisitor):
 
         return self.visit(object_members_ctx)
 
-    def visitObject_members(
+    def visit_object_members(
         self, ctx: YiniParser.Object_membersContext
     ) -> dict[str, Any]:
         if self._strict and self._object_members_has_trailing_comma(ctx):
@@ -527,7 +526,7 @@ class YiniBuilderVisitor(YiniParserVisitor):
 
         return result
 
-    def visitObject_member(
+    def visit_object_member(
         self, ctx: YiniParser.Object_memberContext
     ) -> tuple[str, Any]:
         """
@@ -553,6 +552,34 @@ class YiniBuilderVisitor(YiniParserVisitor):
             )
 
         return key, value
+
+    # ANTLR's generated parser dispatches to these exact method names.
+    visitYini = visit_yini
+    visitStmt = visit_stmt
+    visitMeta_stmt = visit_meta_stmt
+    visitDirective = visit_directive
+    visitYini_directive = visit_yini_directive
+    visitYini_mode_declaration = visit_yini_mode_declaration
+    visitAnnotation = visit_annotation
+    visitBad_meta_text = visit_bad_meta_text
+    visitInvalid_section_stmt = visit_invalid_section_stmt
+    visitBad_member = visit_bad_member
+    visitAssignment = visit_assignment
+    visitMember = visit_member
+    visitValue = visit_value
+    visitScalar_value = visit_scalar_value
+    visitConcat_expression = visit_concat_expression
+    visitConcat_tail = visit_concat_tail
+    visitConcat_operand = visit_concat_operand
+    visitString_literal = visit_string_literal
+    visitNull_literal = visit_null_literal
+    visitBoolean_literal = visit_boolean_literal
+    visitNumber_literal = visit_number_literal
+    visitList_literal = visit_list_literal
+    visitElements = visit_elements
+    visitObject_literal = visit_object_literal
+    visitObject_members = visit_object_members
+    visitObject_member = visit_object_member
 
     # ------------------------------------------------------------
     # Helpers

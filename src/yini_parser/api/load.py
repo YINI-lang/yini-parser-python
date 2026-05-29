@@ -37,9 +37,7 @@ def load(path: str | Path, strict: bool = False) -> dict[str, Any]:
     return _parse_input_stream(input_stream, strict=strict)
 
 
-def _parse_input_stream(
-    input_stream: InputStream | FileStream, strict: bool
-) -> dict[str, Any]:
+def _parse_input_stream(input_stream: InputStream, strict: bool) -> dict[str, Any]:
     lexer = YiniLexer(input_stream)
     stream = CommonTokenStream(lexer)
     parser = YiniParser(stream)
