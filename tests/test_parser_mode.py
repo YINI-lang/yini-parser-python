@@ -61,7 +61,7 @@ name = "Demo App"
     }
 
 
-def test_yini_lenient_declaration_allows_strict_parser_mode_1() -> None:
+def test_yini_lenient_declaration_warns_in_strict_parser_mode_1() -> None:
     text = """
 @yini lenient
 
@@ -84,7 +84,7 @@ name = "Demo App"
     }
 
 
-def test_yini_lenient_declaration_allows_strict_parser_mode_2() -> None:
+def test_yini_lenient_declaration_warns_in_strict_parser_mode_2() -> None:
     text = """
 @yini lenient
 

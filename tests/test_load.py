@@ -86,3 +86,37 @@ items = []
             "items": [],
         },
     }
+
+
+def test_loads_accepts_section_without_final_newline() -> None:
+    # Arrange.
+    source = "^ App"
+
+    # Act.
+    result = loads(source)
+
+    # Assert.
+    assert result == {"App": {}}
+
+
+def test_loads_accepts_assignment_without_final_newline() -> None:
+    # Arrange.
+    source = '^ App\nname = "demo"'
+
+    # Act.
+    result = loads(source)
+
+    # Assert.
+    assert result == {"App": {"name": "demo"}}
+
+
+def test_load_accepts_file_without_final_newline(tmp_path) -> None:
+    # Arrange.
+    path = tmp_path / "config.yini"
+    path.write_text('^ App\nname = "demo"', encoding="utf-8")
+
+    # Act.
+    result = load(path)
+
+    # Assert.
+    assert result == {"App": {"name": "demo"}}
