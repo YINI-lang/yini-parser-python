@@ -67,6 +67,12 @@ class YiniBuilderVisitor(YiniParserVisitor):
                 raise YiniParseError(
                     "Strict mode requires exactly one document terminator."
                 )
+        else:
+            if not self._root:
+                self._add_warning(
+                    "empty-document: The document contains no meaningful YINI content.",
+                    code="empty-document",
+                )
 
         return self._root
 
