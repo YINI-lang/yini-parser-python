@@ -18,7 +18,9 @@ keywords = [
   "config",
   "parser",
   "ini",
-  "antlr"
+  "antlr",
+  "data-format",
+  "configuration-file",
 ]
 classifiers = [
   "Development Status :: 3 - Alpha",

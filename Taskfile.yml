@@ -28,7 +28,6 @@ tasks:
   run-sample:
     desc: Start the project.
     cmds:
-  #    - python src/main.py ./sample/basic.yini
        - python src/main.py sample/basic.yini
 
   dev:
@@ -115,6 +114,14 @@ tasks:
     cmds:
       - python -m build
 
+  release-check:
+    desc: Run full checks before publishing
+    cmds:
+      - task check
+      - task clean-build
+      - task build
+      - task check-dist
+ 
   check-dist:
     desc: Check built distribution metadata
     cmds:
@@ -142,13 +149,22 @@ tasks:
       - powershell -NoProfile -Command "if (Test-Path '.mypy_cache') { Remove-Item -Recurse -Force '.mypy_cache' }"
       - powershell -NoProfile -Command "if (Test-Path '.ruff_cache') { Remove-Item -Recurse -Force '.ruff_cache' }"
 
+  clean-build:
+    desc: Delete Python build artifacts
+    platforms: [windows]
+    cmds:
+      - powershell -NoProfile -Command "if (Test-Path 'build') { Remove-Item -Recurse -Force 'build' }"
+      - powershell -NoProfile -Command "if (Test-Path 'dist') { Remove-Item -Recurse -Force 'dist' }"
+      - powershell -NoProfile -Command "Get-ChildItem 'src' -Directory -Filter '*.egg-info' -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force"
+
   clean:
     desc: Delete caches only
     deps:
       - clean-cache
 
   clean-all:
-    desc: Delete caches and generated ANTLR output
+    desc: Delete caches, build artifacts, and generated ANTLR output
     deps:
       - clean-cache
+      - clean-build
       - clean-gen

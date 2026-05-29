@@ -1,6 +1,14 @@
 # Ignore ENV file.
 .env
 
+# Virtual environments.
+.venv/
+venv/
+env/
+
+# Temporary test virtual environments.
+.tmp-test-venv/
+
 # Python bytecode / caches.
 __pycache__/
 *$py.class
@@ -20,15 +28,16 @@ dist/
 *.egg-info/
 src/*.egg-info/
 
-# DO NOT ignore js files in examples.
-!examples/basic-output.js
-!examples/nested-output.js
-
 # ANTLR4 output directory where all output is generated to.
 gen-output
 
 # Ignore .antlr dir itself and all its contents.
 **/.antlr/**
+
+# Coverage.
+.coverage
+htmlcov/
+coverage.xml
 
 # Ignore logs...
 logs
