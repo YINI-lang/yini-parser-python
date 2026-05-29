@@ -27,11 +27,39 @@ import yini_parser
 
 ---
 
+## Copy-paste test
+
+Test the package in under one minute.
+
+Parse a YINI string:
+
+```python
+from yini_parser import loads
+
+data = loads("""
+^ Application
+name = "demo"
+
+^^ Server
+port = 8080
+""")
+
+print(data)
+```
+
+Expected output:
+
+```python
+{'Application': {'name': 'demo', 'Server': {'port': 8080}}}
+```
+
+---
+
 ## Quick Start
 
 Example lenient-mode (default) YINI file:
 
-```yini
+```ini
 // A small, practical YINI config.
 
 // The App section starts here.
@@ -89,6 +117,91 @@ The Python examples show how to install `yini-parser`, load `.yini` files, and a
 
 - [Python basic demo](https://github.com/YINI-lang/yini-demo-apps/tree/main/python/basic)
 - [Python medium demo](https://github.com/YINI-lang/yini-demo-apps/tree/main/python/medium)
+
+---
+
+## Why YINI?
+
+YINI is intended for configuration files where human readability, explicit structure, and predictable parsing are more important than minimal syntax or maximum flexibility.
+
+Compared with common configuration formats:
+- **INI:** YINI supports clearer nested sections and typed values.
+- **JSON:** YINI supports comments and is easier to edit by hand.
+- **YAML:** YINI does not use indentation to define structure.
+- **TOML:** YINI uses explicit section markers for hierarchy instead of dotted table names.
+
+The same small configuration can be written in several formats:
+
+### YINI
+```ini
+^ Application
+name = 'demo'
+environment = 'dev'
+
+^^ Server
+host = 'localhost'
+ports = [8080, 8081]
+
+^^^ TLS
+enabled = true
+mode = 'optional'
+```
+
+- `Application` contains the top-level application settings.
+- `Server` is nested under `Application`.
+- `TLS` is nested under `Server`.
+- The section markers `^` make the nesting explicit. Indentation is optional and not required for structure.
+- Strings can use either `'` or `"`.
+
+### JSON
+```json
+{
+  "Application": {
+    "name": "demo",
+    "environment": "dev",
+    "Server": {
+      "host": "localhost",
+      "ports": [8080, 8081],
+      "TLS": {
+        "enabled": true,
+        "mode": "optional"
+      }
+    }
+  }
+}
+```
+
+### YAML
+```yaml
+Application:
+  name: demo
+  environment: dev
+  Server:
+    host: localhost
+    ports:
+      - 8080
+      - 8081
+    TLS:
+      enabled: true
+      mode: optional
+```
+
+### TOML
+```toml
+[Application]
+name = "demo"
+environment = "dev"
+
+[Application.Server]
+host = "localhost"
+ports = [8080, 8081]
+
+[Application.Server.TLS]
+enabled = true
+mode = "optional"
+```
+
+YINI may not be the right choice when you need mature ecosystem support, existing schema tooling, or maximum compatibility with infrastructure that already expects JSON, YAML, or TOML. The format and parser are still alpha-stage and best suited for testing, experiments, and early integration feedback.
 
 ---
 

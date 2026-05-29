@@ -51,7 +51,7 @@ task install
 
 Or run this command directly:
 ```bash
-python -m pip install -r requirements.txt
+python -m pip install -e .
 ```
 
 ## Install Java 17+
@@ -68,7 +68,7 @@ java -version
 
 To regenerate the parser and lexer source files from the ANTLR grammar, run:
 ```bash
-task generate-antlr
+task antlr
 ```
 
 The generated code will go into `src/grammar/generated`, and shall not be hand-edited since that content will get overwritten on the next generation.
