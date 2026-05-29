@@ -1,0 +1,19 @@
+include README.md
+include LICENSE
+include pyproject.toml
+
+recursive-include src/yini_parser *.py
+
+recursive-exclude tests *
+recursive-exclude docs *
+recursive-exclude sample *
+recursive-exclude grammar *
+recursive-exclude libs *
+recursive-exclude .github *
+recursive-exclude .vscode *
+recursive-exclude dist *
+recursive-exclude build *
+recursive-exclude src *.egg-info
+global-exclude __pycache__
+global-exclude *.py[cod]
+global-exclude .DS_Store
