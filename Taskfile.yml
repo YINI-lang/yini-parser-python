@@ -7,7 +7,7 @@
 version: '3'
 
 vars:
-  GRAMMAR_BASE: ./grammar/v1.0.0-rc.5xxxx
+  GRAMMAR_BASE: ./grammar/v1.0.0-rc.6
 
   PARSER_FILE:  "{{.GRAMMAR_BASE}}/YiniParser.g4"
   LEXER_FILE:   "{{.GRAMMAR_BASE}}/YiniLexer.g4"

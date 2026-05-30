@@ -1,4 +1,4 @@
-# Generated from ./grammar/v1.0.0-rc.5xxxx/YiniLexer.g4 by ANTLR 4.13.2
+# Generated from ./grammar/v1.0.0-rc.6/YiniLexer.g4 by ANTLR 4.13.2
 from antlr4 import *
 from io import StringIO
 import sys
