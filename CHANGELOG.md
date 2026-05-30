@@ -1,8 +1,9 @@
 # CHANGELOG
 
-## 0.1.0a3 - 2026-05-27
+## 0.1.0a3 - 2026 May
 - **Fixed:** Normalized input handling so `load(...)` and `loads(...)` accept YINI documents without a final trailing newline.
 - **Improved:** Cleaned up the published Python package contents by excluding tests and development-only project files from the source distribution and wheel.
+- **Renamed** handwritten visitor methods to PEP8-style snake_case while preserving ANTLR dispatch aliases.
 - **Documented:** Clarified that `yini-parser` uses ANTLR-generated Python parser code, that users do not need Java or the ANTLR generator to use the package, and that the ANTLR generator JAR is not included in the published Python package.
 - **Regenerated** the ANTLR-generated Python parser sources from the updated YINI grammar.
 - **Updated** the parser visitor to match the latest RC.6 grammar structure.
@@ -29,6 +30,7 @@
 - Expanded tests for mode declarations, strict/lenient behavior, inline objects, string concatenation, section depth, and warning diagnostics.
 - Updated the quality gate so tests pass with `-W error`, Ruff linting/formatting, and mypy type checking.
 - Configured mypy to skip ANTLR-generated parser files.
+- **Improved:**: README/Development documentation cleanup.
 
 ## 0.1.0a2 - 2026-05-16
 - Updated README with links to Python demo applications.
