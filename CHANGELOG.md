@@ -1,9 +1,12 @@
 # CHANGELOG
 
 ## 0.1.0a3 - 2026-05-27
-- Regenerated the ANTLR-generated Python parser sources from the updated YINI grammar.
-- Updated the parser visitor to match the latest RC.6 grammar structure.
-- Added support for `@yini strict` and `@yini lenient` mode declarations, including unknown-mode validation and mode-mismatch diagnostics:
+- **Fixed:** Normalized input handling so `load(...)` and `loads(...)` accept YINI documents without a final trailing newline.
+- **Improved:** Cleaned up the published Python package contents by excluding tests and development-only project files from the source distribution and wheel.
+- **Documented:** Clarified that `yini-parser` uses ANTLR-generated Python parser code, that users do not need Java or the ANTLR generator to use the package, and that the ANTLR generator JAR is not included in the published Python package.
+- **Regenerated** the ANTLR-generated Python parser sources from the updated YINI grammar.
+- **Updated** the parser visitor to match the latest RC.6 grammar structure.
+- **Added** support for `@yini strict` and `@yini lenient` mode declarations, including unknown-mode validation and mode-mismatch diagnostics:
   - `@yini strict` parsed in lenient mode is an error.
   - `@yini lenient` parsed in strict mode is valid but emits a warning.
 - Updated strict/lenient validation:
