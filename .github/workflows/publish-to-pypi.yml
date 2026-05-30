@@ -1,9 +1,12 @@
 name: Publish Python package
 
+# on:
+#   push:
+#     tags:
+#       - "v*"
 on:
-  push:
-    tags:
-      - "v*"
+  release:
+    types: [published]
 
 jobs:
   build:
