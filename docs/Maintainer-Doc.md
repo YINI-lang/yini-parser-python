@@ -131,6 +131,12 @@ Upload to PyPI:
 python -m twine upload dist/*
 ```
 
+Or use this if the above upload fails, for more detailed information:
+
+```bash
+python -m twine upload --verbose dist/*
+```
+
 When prompted, use:
 
 ```text
