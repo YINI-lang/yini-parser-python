@@ -5,6 +5,7 @@ Transform / build_model -> visitor converts tree to Python values
 # src/yini_parser/core/yini_builder_visitor.py
 from __future__ import annotations
 
+import re
 import warnings
 from typing import Any
 
@@ -13,10 +14,14 @@ from ..api.warnings import YiniParseWarning
 from ..grammar.generated.YiniParser import YiniParser
 from ..grammar.generated.YiniParserVisitor import YiniParserVisitor
 from ..utils.antlr import ctx_location
+from ..utils.text import strip_backticks
 
 from .section_headers import parse_section_head
 from .value_decoders import decode_string_token, parse_number_literal
 from .validator import YiniValidator
+
+
+_SIMPLE_KEY_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 
 class YiniBuilderVisitor(YiniParserVisitor):
@@ -46,6 +51,7 @@ class YiniBuilderVisitor(YiniParserVisitor):
         self._section_names: list[str] = []
         self._ignored_section_level: int | None = None
         self._top_level_section_count = 0
+        self._seen_content = False
         self._validator = YiniValidator(strict=strict)
         # self._root_member_count = 0
 
@@ -83,6 +89,7 @@ class YiniBuilderVisitor(YiniParserVisitor):
     def visit_stmt(self, ctx: YiniParser.StmtContext) -> Any:
         section_token = ctx.SECTION_HEAD()
         if section_token is not None:
+            self._seen_content = True
             symbol = section_token.getSymbol()
             line = symbol.line
             column = symbol.column + 1
@@ -131,6 +138,7 @@ class YiniBuilderVisitor(YiniParserVisitor):
 
         assignment_ctx = ctx.assignment()
         if assignment_ctx is not None:
+            self._seen_content = True
             return self.visit(assignment_ctx)
 
         bad_member_ctx = ctx.bad_member()
@@ -175,6 +183,15 @@ class YiniBuilderVisitor(YiniParserVisitor):
         return None
 
     def visit_yini_directive(self, ctx: YiniParser.Yini_directiveContext) -> None:
+        line, column = ctx_location(ctx)
+
+        if self._seen_content:
+            raise YiniParseError(
+                "@yini directives must appear before sections or members.",
+                line=line,
+                column=column,
+            )
+
         mode_ctx = ctx.yini_mode_declaration()
 
         # Plain @yini is valid and declares no mode.
@@ -291,7 +308,7 @@ class YiniBuilderVisitor(YiniParserVisitor):
         return None
 
     def visit_member(self, ctx: YiniParser.MemberContext) -> tuple[str, Any]:
-        key = ctx.KEY().getText()
+        key = self._decode_key_token(ctx.KEY(), description="key")
         value_ctx = ctx.value()
 
         if value_ctx is None:
@@ -535,7 +552,7 @@ class YiniBuilderVisitor(YiniParserVisitor):
         - The canonical inline object member separator remains `:`.
         """
 
-        key = ctx.KEY().getText()
+        key = self._decode_key_token(ctx.KEY(), description="inline object key")
         value = self.visit(ctx.value())
 
         separator_ctx = ctx.object_member_separator()
@@ -589,6 +606,25 @@ class YiniBuilderVisitor(YiniParserVisitor):
         if self._section_stack:
             return self._section_stack[-1]
         return self._root
+
+    def _decode_key_token(self, token: Any, *, description: str) -> str:
+        raw_key = token.getText()
+        key = strip_backticks(raw_key)
+
+        if raw_key.startswith("`"):
+            return key
+
+        if not _SIMPLE_KEY_RE.fullmatch(raw_key):
+            symbol = token.getSymbol()
+            raise YiniParseError(
+                f"Invalid {description} {raw_key!r}. "
+                "Use letters, digits, and underscores, and do not start with a digit. "
+                "Use backticks for keys that need spaces or punctuation.",
+                line=symbol.line,
+                column=symbol.column + 1,
+            )
+
+        return key
 
     def _enter_section_with_parsed(
         self,

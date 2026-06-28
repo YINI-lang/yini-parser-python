@@ -4,7 +4,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from antlr4 import CommonTokenStream, InputStream
+from antlr4 import CommonTokenStream, InputStream, Token
+from antlr4.error.ErrorListener import ErrorListener
 
 from yini_parser.api.errors import YiniParseError
 
@@ -39,15 +40,28 @@ def load(path: str | Path, strict: bool = False) -> dict[str, Any]:
 
 def _parse_input_stream(input_stream: InputStream, strict: bool) -> dict[str, Any]:
     lexer = YiniLexer(input_stream)
+    lexer_errors = _SyntaxErrorCollector()
+    lexer.removeErrorListeners()
+    lexer.addErrorListener(lexer_errors)
+
     stream = CommonTokenStream(lexer)
+    _normalize_shebang_comment_tokens(stream)
+
     parser = YiniParser(stream)
+    parser_errors = _SyntaxErrorCollector()
+    parser.removeErrorListeners()
+    parser.addErrorListener(parser_errors)
 
     tree = parser.yini()
 
-    if parser.getNumberOfSyntaxErrors() > 0:
-        #        raise ValueError(f"Failed to parse YINI input: {parser.getNumberOfSyntaxErrors()} syntax error(s).")
+    syntax_errors = lexer_errors.errors + parser_errors.errors
+    if syntax_errors:
+        line, column, message = syntax_errors[0]
         raise YiniParseError(
-            f"Failed to parse YINI input: {parser.getNumberOfSyntaxErrors()} syntax error(s)."
+            f"Failed to parse YINI input: {len(syntax_errors)} syntax error(s). "
+            f"First error: {message}",
+            line=line,
+            column=column,
         )
 
     visitor = YiniBuilderVisitor(strict=strict)
@@ -66,3 +80,49 @@ def _ensure_final_newline(text: str) -> str:
         return text + "\n"
 
     return text
+
+
+class _SyntaxErrorCollector(ErrorListener):
+    def __init__(self) -> None:
+        super().__init__()
+        self.errors: list[tuple[int, int, str]] = []
+
+    def syntaxError(  # noqa: N802
+        self,
+        recognizer: Any,
+        offendingSymbol: Any,
+        line: int,
+        column: int,
+        msg: str,
+        e: Exception | None,
+    ) -> None:
+        self.errors.append((line, column + 1, msg))
+
+
+def _normalize_shebang_comment_tokens(stream: CommonTokenStream) -> None:
+    """
+    Keep a leading shebang available to the prolog rule, but treat later
+    shebang-looking lines as ordinary ignored line content.
+    """
+
+    stream.fill()
+
+    seen_meaningful_token = False
+
+    for token in stream.tokens:
+        if token.type == Token.EOF:
+            continue
+
+        if token.type == YiniLexer.NL:
+            continue
+
+        if token.type == YiniLexer.SHEBANG:
+            if seen_meaningful_token:
+                token.type = YiniLexer.NL
+            else:
+                seen_meaningful_token = True
+            continue
+
+        seen_meaningful_token = True
+
+    stream.seek(0)
