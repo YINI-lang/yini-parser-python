@@ -2,7 +2,7 @@
 
 The official Python parser for **YINI** (by the YINI-lang project) — a human-readable, INI-inspired, indentation-insensitive configuration format with clear nested sections, explicit structure, comments, and predictable parsing.  
 
-> **Status:** Alpha.  
+> **Status:** Beta.  
 > This parser is intended for early testing and integration. The public API and edge-case behavior may still change before `1.0.0`.
 
 ---
@@ -201,7 +201,7 @@ enabled = true
 mode = "optional"
 ```
 
-YINI may not be the right choice when you need mature ecosystem support, existing schema tooling, or maximum compatibility with infrastructure that already expects JSON, YAML, or TOML. The format and parser are still alpha-stage and best suited for testing, experiments, and early integration feedback.
+YINI may not be the right choice when you need mature ecosystem support, existing schema tooling, or maximum compatibility with infrastructure that already expects JSON, YAML, or TOML. The format and parser are still beta-stage and best suited for testing, experiments, and early integration feedback.
 
 ---
 
@@ -295,6 +295,14 @@ Run the full project check with:
 ```bash
 task check
 ```
+
+---
+
+## 🧪 Testing and Stability
+
+This parser is covered by smoke, integration, and regression tests.
+
+It has also been run against `yini-test-suite` v0.3.0, the external [YINI conformance test suite](https://github.com/YINI-lang/yini-test-suite), with all TypeScript parser cases passing.
 
 ---
 

@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 0.2.0b1 - 2026 June
+- **Fixed:** Improved error reporting when a YINI file has broken syntax, including unfinished block comments such as `/* comment`.
+- **Fixed:** `#!` lines outside the first line are now safely ignored as comment-like lines.
+- **Fixed:** `@yini` markers are now rejected if they appear after real file content. The `@yini` marker belongs at the top of the file.
+- **Fixed:** Backticked keys are now handled correctly, and invalid plain keys such as `1key` and `my.key` are rejected.
+- **Added:** More tests for keys, comments, parser mode handling, and invalid YINI files.
+
 ## 0.1.0a3 - 2026 May
 - **Fixed:** Normalized input handling so `load(...)` and `loads(...)` accept YINI documents without a final trailing newline.
 - **Improved:** Cleaned up the published Python package contents by excluding tests and development-only project files from the source distribution and wheel.
