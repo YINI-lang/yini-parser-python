@@ -155,3 +155,28 @@ name = "Demo"
 
     with pytest.raises(YiniParseError):
         loads(text)
+
+
+def test_yini_directive_after_member_is_rejected() -> None:
+    text = """
+^ App
+name = "Demo App"
+
+@yini
+""".lstrip()
+
+    with pytest.raises(YiniParseError, match="@yini directives must appear"):
+        loads(text)
+
+
+def test_yini_directive_after_section_is_rejected() -> None:
+    text = """
+^ App
+
+@yini
+
+name = "Demo App"
+""".lstrip()
+
+    with pytest.raises(YiniParseError, match="@yini directives must appear"):
+        loads(text)

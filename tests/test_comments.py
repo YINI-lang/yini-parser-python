@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import pytest
+
+from yini_parser.api.errors import YiniParseError
 from yini_parser.api.load import loads
 
 
@@ -236,3 +239,34 @@ name = "Demo App"
             "name": "Demo App",
         },
     }
+
+
+def test_shebang_after_yini_directive_is_treated_as_comment() -> None:
+    text = """
+@yini
+#!/usr/bin/env yini
+
+^ App
+name = "Demo App"
+""".lstrip()
+
+    result = loads(text)
+
+    assert result == {
+        "App": {
+            "name": "Demo App",
+        },
+    }
+
+
+def test_rejects_unterminated_block_comment() -> None:
+    text = """
+@yini
+
+^ App
+name = "Demo App"
+/* This block comment never closes.
+""".lstrip()
+
+    with pytest.raises(YiniParseError):
+        loads(text)
