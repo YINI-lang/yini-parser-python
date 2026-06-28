@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## 0.2.0b1 - 2026 June
+## 0.2.0 beta 1 - 2026 June
 - **Fixed:** Improved error reporting when a YINI file has broken syntax, including unfinished block comments such as `/* comment`.
 - **Fixed:** `#!` lines outside the first line are now safely ignored as comment-like lines.
 - **Fixed:** `@yini` markers are now rejected if they appear after real file content. The `@yini` marker belongs at the top of the file.
