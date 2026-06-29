@@ -1,6 +1,9 @@
 # tests/test_values.py
 from __future__ import annotations
 
+import pytest
+
+from yini_parser.api.errors import YiniParseError
 from yini_parser.api.load import loads
 
 
@@ -88,6 +91,38 @@ path = "\home\user\docs\report.docx"
             "path": r"\home\user\docs\report.docx",
         },
     }
+
+
+def test_parses_classic_octal_escape() -> None:
+    text = r"""
+^ App
+letter = C"\o141"
+""".lstrip()
+
+    result = loads(text)
+
+    assert result == {
+        "App": {
+            "letter": "a",
+        },
+    }
+
+
+def test_rejects_invalid_classic_octal_escape() -> None:
+    text = r"""
+^ App
+bad = C"\o378"
+""".lstrip()
+
+    with pytest.raises(YiniParseError):
+        loads(text)
+
+
+def test_rejects_literal_control_character_in_string() -> None:
+    text = '^ App\nbad = "alpha\tbeta"\n'
+
+    with pytest.raises(YiniParseError):
+        loads(text)
 
 
 def test_parses_lists() -> None:

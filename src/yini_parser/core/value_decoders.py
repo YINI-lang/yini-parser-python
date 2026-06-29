@@ -1,10 +1,25 @@
 # src/yini_parser/core/value_decoders.py
+from typing import NoReturn
+
 from ..api.errors import YiniParseError
 
 """
 - Parsers reads raw/source text and recognizes its structure as tokens.
 - Decoders converts tokens into its runtime value.
 """
+
+_CLASSIC_SIMPLE_ESCAPES = {
+    "\\": "\\",
+    '"': '"',
+    "'": "'",
+    "a": "\a",
+    "b": "\b",
+    "f": "\f",
+    "n": "\n",
+    "r": "\r",
+    "t": "\t",
+    "v": "\v",
+}
 
 
 def decode_string_token(
@@ -46,10 +61,17 @@ def decode_string_token(
         if prefix in {"C", "c"}:
             return _decode_classic_string(
                 inner,
+                allow_line_breaks=True,
                 line=line,
                 column=column,
             )
 
+        _validate_string_content(
+            inner,
+            allow_line_breaks=True,
+            line=line,
+            column=column,
+        )
         return inner
 
     # Single-quoted or double-quoted string.
@@ -58,12 +80,19 @@ def decode_string_token(
 
         # Raw and unprefixed strings: return as-is.
         if prefix in {"", "R", "r"}:
+            _validate_string_content(
+                inner,
+                allow_line_breaks=False,
+                line=line,
+                column=column,
+            )
             return inner
 
         # Classic strings: decode escapes.
         if prefix in {"C", "c"}:
             return _decode_classic_string(
                 inner,
+                allow_line_breaks=False,
                 line=line,
                 column=column,
             )
@@ -141,17 +170,182 @@ def parse_number_literal(text, line=None, column=None):
 def _decode_classic_string(
     inner: str,
     *,
+    allow_line_breaks: bool,
     line: int | None = None,
     column: int | None = None,
 ) -> str:
-    try:
-        return bytes(inner, "utf-8").decode("unicode_escape")
-    except UnicodeDecodeError as exc:
-        raise YiniParseError(
-            f"Invalid string escape sequence: {exc.reason}.",
+    result: list[str] = []
+    index = 0
+
+    while index < len(inner):
+        char = inner[index]
+
+        if char != "\\":
+            _validate_string_content(
+                char,
+                allow_line_breaks=allow_line_breaks,
+                line=line,
+                column=column,
+            )
+            result.append(char)
+            index += 1
+            continue
+
+        if index + 1 >= len(inner):
+            _raise_invalid_escape(
+                "Invalid string escape sequence: trailing backslash.",
+                line=line,
+                column=column,
+            )
+
+        escape = inner[index + 1]
+
+        if escape in _CLASSIC_SIMPLE_ESCAPES:
+            result.append(_CLASSIC_SIMPLE_ESCAPES[escape])
+            index += 2
+            continue
+
+        if escape == "o":
+            result.append(
+                _decode_digits_escape(
+                    inner,
+                    start=index + 2,
+                    length=3,
+                    base=8,
+                    prefix="\\o",
+                    line=line,
+                    column=column,
+                )
+            )
+            index += 5
+            continue
+
+        if escape == "x":
+            result.append(
+                _decode_digits_escape(
+                    inner,
+                    start=index + 2,
+                    length=2,
+                    base=16,
+                    prefix="\\x",
+                    line=line,
+                    column=column,
+                )
+            )
+            index += 4
+            continue
+
+        if escape == "u":
+            result.append(
+                _decode_digits_escape(
+                    inner,
+                    start=index + 2,
+                    length=4,
+                    base=16,
+                    prefix="\\u",
+                    line=line,
+                    column=column,
+                )
+            )
+            index += 6
+            continue
+
+        if escape == "U":
+            result.append(
+                _decode_digits_escape(
+                    inner,
+                    start=index + 2,
+                    length=8,
+                    base=16,
+                    prefix="\\U",
+                    line=line,
+                    column=column,
+                )
+            )
+            index += 10
+            continue
+
+        _raise_invalid_escape(
+            f"Invalid string escape sequence: \\{escape}.",
             line=line,
             column=column,
-        ) from None
+        )
+
+    return "".join(result)
+
+
+def _validate_string_content(
+    text: str,
+    *,
+    allow_line_breaks: bool,
+    line: int | None = None,
+    column: int | None = None,
+) -> None:
+    for char in text:
+        if ord(char) >= 0x20:
+            continue
+
+        if allow_line_breaks and char in {"\n", "\r", "\t"}:
+            continue
+
+        raise YiniParseError(
+            "Invalid string literal: literal control characters are not allowed.",
+            line=line,
+            column=column,
+        )
+
+
+def _decode_digits_escape(
+    text: str,
+    *,
+    start: int,
+    length: int,
+    base: int,
+    prefix: str,
+    line: int | None = None,
+    column: int | None = None,
+) -> str:
+    digits = text[start : start + length]
+
+    if len(digits) != length or not _digits_match_base(digits, base):
+        _raise_invalid_escape(
+            f"Invalid string escape sequence: {prefix} requires {length} "
+            f"base-{base} digit(s).",
+            line=line,
+            column=column,
+        )
+
+    try:
+        return chr(int(digits, base))
+    except ValueError:
+        _raise_invalid_escape(
+            f"Invalid string escape sequence: {prefix}{digits}.",
+            line=line,
+            column=column,
+        )
+
+
+def _digits_match_base(digits: str, base: int) -> bool:
+    if base == 8:
+        return all("0" <= digit <= "7" for digit in digits)
+
+    if base == 16:
+        return all(digit in "0123456789abcdefABCDEF" for digit in digits)
+
+    raise ValueError(f"Unsupported escape base: {base}")
+
+
+def _raise_invalid_escape(
+    message: str,
+    *,
+    line: int | None = None,
+    column: int | None = None,
+) -> NoReturn:
+    raise YiniParseError(
+        message,
+        line=line,
+        column=column,
+    )
 
 
 def _parse_duodecimal(
