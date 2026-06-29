@@ -7,6 +7,20 @@ from pathlib import Path
 from typing import NoReturn
 
 
+def _configure_stdio() -> None:
+    """
+    The yini-test-suite reads adapter output as UTF-8 JSON. On some Windows
+    setups, Python may encode piped stdout/stderr with the active locale unless
+    we make the encoding explicit.
+    """
+
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+
+    if hasattr(sys.stderr, "reconfigure"):
+        sys.stderr.reconfigure(encoding="utf-8")
+
+
 def _ensure_local_src_on_path() -> None:
     """
     Allows this adapter to run directly from the repository root without
@@ -48,6 +62,7 @@ def _parse_args() -> argparse.Namespace:
 
 
 def main() -> int:
+    _configure_stdio()
     _ensure_local_src_on_path()
 
     from yini_parser.api.errors import YiniParseError
