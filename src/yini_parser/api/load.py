@@ -3,11 +3,13 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import Any
+import warnings
 
 from antlr4 import CommonTokenStream, InputStream, Token
 from antlr4.error.ErrorListener import ErrorListener
 
 from yini_parser.api.errors import YiniParseError
+from yini_parser.api.warnings import YiniParseWarning
 
 from ..core.yini_builder_visitor import YiniBuilderVisitor
 from ..grammar.generated.YiniLexer import YiniLexer
@@ -19,6 +21,7 @@ def loads(text: str, strict: bool = False) -> dict[str, Any]:
     Parse YINI text and return the resulting Python dictionary.
     """
 
+    text = _normalize_leading_bom(text, strict=strict)
     text = _ensure_final_newline(text)
     input_stream = InputStream(text)
 
@@ -32,6 +35,7 @@ def load(path: str | Path, strict: bool = False) -> dict[str, Any]:
 
     file_path = Path(path)
     text = file_path.read_text(encoding="utf-8")
+    text = _normalize_leading_bom(text, strict=strict)
     text = _ensure_final_newline(text)
     input_stream = InputStream(text)
 
@@ -80,6 +84,24 @@ def _ensure_final_newline(text: str) -> str:
         return text + "\n"
 
     return text
+
+
+def _normalize_leading_bom(text: str, *, strict: bool) -> str:
+    if not text.startswith("\ufeff"):
+        return text
+
+    if not strict:
+        warnings.warn(
+            YiniParseWarning(
+                "UTF-8 BOM found at the start of the YINI document; ignoring BOM.",
+                line=1,
+                column=1,
+                code="BOM",
+            ),
+            stacklevel=2,
+        )
+
+    return text[1:]
 
 
 class _SyntaxErrorCollector(ErrorListener):

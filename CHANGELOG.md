@@ -4,6 +4,7 @@
 - **Fixed:** The test-suite adapter now writes UTF-8 JSON consistently on Windows.
 - **Fixed:** Classic strings now validate YINI escape sequences directly, including invalid octal and Unicode escapes.
 - **Fixed:** Literal control characters are rejected in single-line strings while multiline triple-quoted strings still preserve valid formatting.
+- **Fixed:** Initial UTF-8 BOMs are still accepted and ignored, but now produce a structured compatibility warning.
 
 ## 0.2.0 beta 1 - 2026 June
 - **Fixed:** Improved error reporting when a YINI file has broken syntax, including unfinished block comments such as `/* comment`.
