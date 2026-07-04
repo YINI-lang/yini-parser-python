@@ -73,3 +73,13 @@ obj = {
 
     with pytest.raises(YiniParseError):
         loads(text)
+
+
+def test_inline_object_member_rejects_hash_prefixed_missing_value() -> None:
+    text = """
+^ App
+palette = { primary: #FF0000 }
+""".lstrip()
+
+    with pytest.raises(YiniParseError):
+        loads(text)
