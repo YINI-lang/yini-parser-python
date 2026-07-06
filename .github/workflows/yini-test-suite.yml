@@ -1,0 +1,41 @@
+# .github/workflows/yini-test-suite.yml
+#
+# Shared YINI conformance test suite
+name: YINI test suite
+
+on:
+  # Runs on every PR to main.
+  pull_request:
+    branches: ['main']  # PRs targeting main.
+
+  # Runs on pushes to main.
+  push:
+    branches: ['main']  # Direct commits and merges into main.
+
+  workflow_dispatch:    # Allows manual run from GitHub UI.
+
+jobs:
+  yini-test-suite:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install parser and test suite
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e .
+          python -m pip install --upgrade --pre yini-test-suite==0.3.0b2
+
+      - name: Run shared YINI test suite
+        run: >
+          python -m yini_test all
+          --all-modes
+          --adapter python ./tools/yini_parser_adapter.py --input '{input}' --mode '{mode}'
