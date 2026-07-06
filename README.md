@@ -302,7 +302,15 @@ task check
 
 This parser is covered by smoke, integration, and regression tests.
 
-It has also been run against `yini-test-suite` v0.3.0, the external [YINI conformance test suite](https://github.com/YINI-lang/yini-test-suite), with all TypeScript parser cases passing.
+It has also been run against the shared external
+[`yini-test-suite`](https://github.com/YINI-lang/yini-test-suite) conformance suite
+for YINI Specification 1.0.0 RC 6.
+
+Current conformance result:
+- 360 passed
+- 0 failed
+- Lenient and strict modes covered
+- Smoke and golden test suites covered
 
 ---
 
