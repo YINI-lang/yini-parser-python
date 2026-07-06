@@ -2,6 +2,8 @@
 
 The official Python parser for **YINI** (by the YINI-lang project) — a human-readable, INI-inspired, indentation-insensitive configuration format with clear nested sections, explicit structure, comments, and predictable parsing.  
 
+[![YINI Test Suite](https://github.com/YINI-lang/yini-parser-typescript/actions/workflows/yini-test-suite.yml/badge.svg)](https://github.com/YINI-lang/yini-parser-typescript/actions/workflows/yini-test-suite.yml)
+
 > **Status:** Beta.  
 > This parser is intended for early testing and integration. The public API and edge-case behavior may still change before `1.0.0`.
 
