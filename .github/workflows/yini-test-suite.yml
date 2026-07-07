@@ -1,7 +1,7 @@
 # .github/workflows/yini-test-suite.yml
 #
 # Shared YINI conformance test suite
-name: YINI test suite
+name: (external) YINI test suite
 
 on:
   # Runs on every PR to main.
