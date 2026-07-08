@@ -1,0 +1,5 @@
+External YINI test suite (conformance) workflow:
+
+- Installs this Python parser in editable mode.
+- Installs the published yini-test-suite package.
+- Runs all strict and lenient cases through tools/yini_parser_adapter.py.

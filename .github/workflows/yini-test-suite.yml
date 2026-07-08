@@ -1,6 +1,8 @@
 # .github/workflows/yini-test-suite.yml
 #
-# Shared YINI conformance test suite
+# Runs the external shared YINI conformance suite against this Python parser.
+# The workflow installs the parser and yini-test-suite, then exercises all
+# strict and lenient cases through tools/yini_parser_adapter.py.
 name: (external) YINI test suite
 
 on:
