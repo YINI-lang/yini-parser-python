@@ -220,7 +220,7 @@ YINI may not be the right choice when you need mature ecosystem support, existin
 
 The generated Python parser files are included in the package. Users do **not** need Java or the ANTLR generator tool to install or use `yini-parser`.
 
-The package depends on `antlr4-python3-runtime` because the generated lexer and parser use the ANTLR Python runtime while parsing.
+ANTLR is a parser-generator tool: it turns the YINI grammar into Python code that can read and validate YINI files.
 
 The ANTLR generator JAR is only needed by maintainers when regenerating parser sources from the grammar, and it is not included in the published Python package.
 
