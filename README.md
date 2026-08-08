@@ -120,9 +120,36 @@ See the [YINI specification and documentation](https://yini-lang.org/refs/specif
 
 ## Examples
 
-Runnable example projects are available in the [YINI demo apps repository](https://github.com/YINI-lang/yini-demo-apps/tree/main/python).
+This repository includes small runnable examples in `examples/`.
 
-The Python examples show how to install `yini-parser`, load `.yini` files, and access parsed configuration data in small practical scripts.
+Each Python script reads a `.yini` file from the same directory, so you can compare the configuration input with the code that loads it.
+
+After cloning this repository, install the package locally:
+
+```sh
+python -m pip install -e .
+```
+
+If you use Task, the equivalent command is:
+```sh
+task install
+```
+
+Then run the examples from the repository root:
+```sh
+python examples/example1.py
+python examples/example2.py
+python examples/example3.py
+```
+
+What they show:
+- `examples/example1.py` reads `examples/basic.yini` and prints basic app settings.
+- `examples/example2.py` reads `examples/nested.yini` and shows nested sections as nested Python dictionaries.
+- `examples/example3.py` reads `examples/application.yini`, validates required fields, and prints a small configuration report.
+
+More YINI syntax examples are available on the [YINI examples page](https://yini-lang.org/learn-yini/examples/?utm_source=yini-parser-python&utm_medium=github&utm_campaign=repo-link&utm_content=readme).
+
+Runnable example projects are available in the [YINI demo apps repository](https://github.com/YINI-lang/yini-demo-apps/tree/main/python):
 
 - [Python basic demo](https://github.com/YINI-lang/yini-demo-apps/tree/main/python/basic)
 - [Python medium demo](https://github.com/YINI-lang/yini-demo-apps/tree/main/python/medium)
