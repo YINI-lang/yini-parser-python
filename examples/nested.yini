@@ -1,15 +1,20 @@
 // Nested sections model related configuration clearly.
 
+// A single caret ("^") starts a top-level section.
 ^ Project
 name = "YINI Demo"
 environment = "development"
 
+// Indentation is optional.
+
+    // This is a section nested under the current top-level section.
     ^^ Database
     host = "localhost"
     port = 5432
     name = "demo_app"
     ssl = false
 
+    // This is another child section of "Project".
     ^^ Logging
     level = "info"
     file = "./logs/app.log"

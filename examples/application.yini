@@ -1,4 +1,8 @@
-// A more complete application configuration.
+@YINI
+
+/*
+    A more complete application configuration.
+*/
 
 ^ Application
 name = "Acme Dashboard"
