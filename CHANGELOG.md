@@ -2,8 +2,12 @@
 
 **Changelog** for `yini-parser-python`.
 
-## [Upcoming/Unreleased] 0.2.0 beta 2 - FUTURE
-- **Added:** Added runnable local examples via python examples/example1.py`, `python examples/example2.py`, and `python examples/example3.py`.
+## [Upcoming/Unreleased]
+
+## 1.0.0 beta 1 - 2026 August
+- **Changed:** Bumped the package version to `1.0.0b1` after the parser passed `yini-test-suite` `0.3.0b2`, the **shared conformance suite** with broad coverage of YINI Specification 1.0.0 Release Candidate 6.
+- **Added:** Added **CI coverage** for `yini-test-suite`, so future changes are tested against the shared YINI conformance suite automatically.
+- **Added:** Added runnable local examples via `python examples/example1.py`, `python examples/example2.py`, and `python examples/example3.py`.
 - **Fixed:** The test-suite adapter now writes UTF-8 JSON consistently on Windows.
 - **Fixed:** Classic strings now validate YINI escape sequences directly, including invalid octal and Unicode escapes.
 - **Fixed:** Literal control characters are rejected in single-line strings while multiline triple-quoted strings still preserve valid formatting.
