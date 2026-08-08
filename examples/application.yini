@@ -1,0 +1,31 @@
+// A more complete application configuration.
+
+^ Application
+name = "Acme Dashboard"
+environment = "production"
+publicUrl = "https://dashboard.example.com"
+maintenanceMode = off
+
+    ^^ Server
+    host = "0.0.0.0"
+    port = 8080
+    trustedProxies = ["10.0.0.1", "10.0.0.2"]
+
+    ^^ Features
+    search = on
+    exports = true
+    betaReports = false
+    enabledModules = ["accounts", "billing", "reports"]
+
+    ^^ Limits
+    requestTimeoutSeconds = 30
+    maxUploadMb = 25
+    dailyExportLimit = null
+
+    ^^ Cache
+    backend = "redis"
+    ttlSeconds = 600
+    options = {
+        maxEntries: 10000,
+        compression: true
+    }

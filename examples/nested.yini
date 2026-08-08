@@ -1,0 +1,16 @@
+// Nested sections model related configuration clearly.
+
+^ Project
+name = "YINI Demo"
+environment = "development"
+
+    ^^ Database
+    host = "localhost"
+    port = 5432
+    name = "demo_app"
+    ssl = false
+
+    ^^ Logging
+    level = "info"
+    file = "./logs/app.log"
+    rotate = true

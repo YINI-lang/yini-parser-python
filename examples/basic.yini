@@ -1,0 +1,8 @@
+// A minimal YINI file with common scalar values.
+
+^ App
+name = "Notes API"
+version = "1.0.0"
+debug = false
+port = 8080
+maxConnections = 100
