@@ -27,11 +27,11 @@ def main() -> None:
     print(f"|-- name: {project['name']}")
     print(f"|-- environment: {project['environment']}")
     print("|-- Database")
-    print(f"|   |-- address: \"{database_address}\"")
+    print(f'|   |-- address: "{database_address}"')
     print(f"|   `-- ssl: {database['ssl']}")
     print("`-- Logging")
     print(f"    |-- level: {logging['level']}")
-    print(f"    `-- file: \"{logging['file']}\"")
+    print(f'    `-- file: "{logging["file"]}"')
 
 
 if __name__ == "__main__":
