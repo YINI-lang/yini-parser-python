@@ -1,3 +1,10 @@
+"""
+Inspect nested.
+
+Run from the repository root with:
+    python examples/example2.py
+"""
+
 from pathlib import Path
 
 from yini_parser import load

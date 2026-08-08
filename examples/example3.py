@@ -1,3 +1,10 @@
+"""
+Validate application.
+
+Run from the repository root with:
+    python examples/example3.py
+"""
+
 from pathlib import Path
 
 from yini_parser import YiniParseError, load

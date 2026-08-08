@@ -1,3 +1,10 @@
+"""
+Read basic.
+
+Run from the repository root with:
+    python examples/example1.py
+"""
+
 from pathlib import Path
 
 from yini_parser import load
