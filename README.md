@@ -36,34 +36,6 @@ import yini_parser
 
 ---
 
-## Copy-paste test
-
-Test the package in under one minute.
-
-Parse a YINI string:
-
-```python
-from yini_parser import loads
-
-data = loads("""
-^ Application
-name = "demo"
-
-^^ Server
-port = 8080
-""")
-
-print(data)
-```
-
-Expected output:
-
-```python
-{'Application': {'name': 'demo', 'Server': {'port': 8080}}}
-```
-
----
-
 ## Quick Start
 
 Example lenient-mode (default) YINI file:
@@ -84,6 +56,25 @@ pageSize = 25
     host = "localhost"
     port = 8080    # YINI also supports # comments.
     useTLS = off
+```
+
+Conceptually, that parses to JSON-shaped data like this:
+
+```json
+{
+  "App": {
+    "name": "Demo App",
+    "version": 1.2,
+    "features": ["search", "logs"],
+    "debug": false,
+    "pageSize": 25,
+    "Server": {
+      "host": "localhost",
+      "port": 8080,
+      "useTLS": false
+    }
+  }
+}
 ```
 
 Parse a YINI file:
