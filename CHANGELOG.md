@@ -3,6 +3,7 @@
 **Changelog** for `yini-parser-python`.
 
 ## [Upcoming/Unreleased]
+- **Added:** Added Dependabot configuration for monthly npm and GitHub Actions dependency updates.
 
 ## 1.0.0 beta 1 - 2026 August
 - **Changed:** Bumped the package version to `1.0.0b1` after the parser passed `yini-test-suite` `0.3.0b2`, the **shared conformance suite** with broad coverage of YINI Specification 1.0.0 Release Candidate 6.
