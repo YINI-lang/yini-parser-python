@@ -74,12 +74,12 @@ Conceptually, that parses to JSON-shaped data like this:
 }
 ```
 
-Parse a YINI file:
+Save the preceding configuration as `config.yini`, then parse it:
 
 ```python
 from yini_parser import load
 
-data = load("sample/basic.yini")
+data = load("config.yini")
 
 print(data["App"]["name"])  # Demo App
 print(data["App"]["Server"]["port"])  # 8080
@@ -101,6 +101,10 @@ print(data["App"]["name"])  # Demo App
 ```
 
 Use `load(...)` to parse a file and `loads(...)` to parse a string.
+
+By default, both functions use lenient parsing. To validate a strict document,
+pass `strict=True`; strict documents require one top-level section and a final
+`/END`.
 
 See the [YINI specification and documentation](https://yini-lang.org/refs/specification?utm_source=github&utm_medium=referral&utm_campaign=yini_parser_python&utm_content=readme).
 
