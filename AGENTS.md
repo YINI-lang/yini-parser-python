@@ -18,7 +18,7 @@ See also: [Shared AI agent instructions for the YINI project family](../AGENTS.m
 - **Task runner:** Task (`Taskfile.yml`)
 - **Framework/stack:** setuptools package, ANTLR4-generated parser, pytest, Ruff, mypy
 - **Monorepo:** No
-- **Status:** Beta package for early testing and integration
+- **Status:** Release candidate for testing and integration
 
 This repository contains the official Python parser for YINI, an INI-inspired,
 indentation-insensitive configuration format with explicit nested sections and
@@ -300,7 +300,7 @@ unless the maintainer asks for release work.
 ## Project-Specific Notes
 
 - The public loading API is `load`, `loads`, and `YiniParseError`.
-- The package is beta; still avoid unnecessary public API churn.
+- The package is a release candidate; still avoid unnecessary public API churn.
 - Generated parser files are included so package users do not need Java or the
   ANTLR generator.
 - Java is only needed by maintainers regenerating parser sources.

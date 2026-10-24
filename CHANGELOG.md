@@ -3,6 +3,9 @@
 **Changelog** for `yini-parser-python`.
 
 ## [Upcoming/Unreleased]
+
+## 1.0.0 release candidate 1 - 2026 October
+- **Changed:** Updated the package version to `1.0.0rc1` for release-candidate testing against YINI Specification 1.0.0 RC.6.
 - **Added:** Added Dependabot configuration for monthly npm and GitHub Actions dependency updates.
 - **Fixed:** Backticked member keys, inline-object keys, and section names now decode `\\` to one backslash in both lenient and strict modes. Previously, parsed names retained both backslashes.
 

@@ -231,7 +231,7 @@ enabled = true
 mode = "optional"
 ```
 
-YINI may not be the right choice when you need mature ecosystem support, existing schema tooling, or maximum compatibility with infrastructure that already expects JSON, YAML, or TOML. The format and parser are still beta-stage and best suited for testing, experiments, and early integration feedback.
+YINI may not be the right choice when you need mature ecosystem support, existing schema tooling, or maximum compatibility with infrastructure that already expects JSON, YAML, or TOML. The format specification and this parser are release candidates. Pin their versions and test against your application's requirements before using them in production.
 
 ---
 
