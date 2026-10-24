@@ -30,10 +30,8 @@ jobs:
         with:
           python-version: "3.11"
 
-    #   - name: Install dependencies
       - name: Install dependencies
-        run: |            
-            pip install -e .[dev]   # -e means in editable mode, [dev] means also install the optional dependency group called dev
+        run: python -m pip install -e ".[dev]"
 
-      - name: Run tests
-        run: task test
+      - name: Run tests, lint, formatting, and type checks
+        run: task check

@@ -4,6 +4,7 @@
 
 ## [Upcoming/Unreleased]
 - **Added:** Added Dependabot configuration for monthly npm and GitHub Actions dependency updates.
+- **Fixed:** Backticked member keys, inline-object keys, and section names now decode `\\` to one backslash in both lenient and strict modes. Previously, parsed names retained both backslashes.
 
 ## 1.0.0 beta 1 - 2026 August
 - **Changed:** Bumped the package version to `1.0.0b1` after the parser passed `yini-test-suite` `0.3.0b2`, the **shared conformance suite** with broad coverage of YINI Specification 1.0.0 Release Candidate 6.

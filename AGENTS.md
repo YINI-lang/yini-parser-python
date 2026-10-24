@@ -213,6 +213,8 @@ When changing parser behavior:
   comments, ignored lines, inline objects, string concatenation, and mode
   declarations.
 
+The files under `spec/` and `grammar/` are reference copies maintained outside this repository. Do not edit or regenerate them here. Updates to those files must be made at their authoritative source and manually copied into this repository only at the maintainer's explicit direction.
+
 ANTLR source grammar files live in `grammar/v1.0.0-rc.6/`. Generated Python
 parser files live in `src/yini_parser/grammar/generated/`.
 

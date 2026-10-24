@@ -1,12 +1,11 @@
 name: Publish Python package
 
-# on:
-#   push:
-#     tags:
-#       - "v*"
 on:
   release:
     types: [published]
+
+permissions:
+  contents: read
 
 jobs:
   build:
@@ -15,22 +14,54 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
+      - uses: arduino/setup-task@v3
 
       - uses: actions/setup-python@v7
         with:
           python-version: "3.11"
 
-      - name: Install build tooling
-        run: python -m pip install --upgrade build
+      - name: Install check and build tooling
+        run: |
+          python -m pip install -e ".[dev]"
+          python -m pip install yini-test-suite==0.3.0rc1
+
+      - name: Verify release tag matches package version
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          python - <<'PY'
+          import os
+          from importlib.metadata import version
+
+          package_version = version("yini-parser")
+          release_tag = os.environ["RELEASE_TAG"]
+          if release_tag not in {package_version, f"v{package_version}"}:
+              raise SystemExit(
+                  f"Release tag {release_tag!r} does not match package version {package_version!r}"
+              )
+          PY
+
+      - name: Run project checks
+        run: task check
+
+      - name: Run shared YINI test suite
+        run: >
+          python -m yini_test all
+          --all-modes
+          --adapter python ./tools/yini_parser_adapter.py --input '{input}' --mode '{mode}'
 
       - name: Build package
         run: python -m build
+
+      - name: Check distribution metadata
+        run: python -m twine check dist/*
 
       - name: Store distributions
         uses: actions/upload-artifact@v7
         with:
           name: python-package-distributions
           path: dist/
+          if-no-files-found: error
 
   publish-to-pypi:
     name: Publish to PyPI

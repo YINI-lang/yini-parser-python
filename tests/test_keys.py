@@ -60,6 +60,24 @@ labels = { `Display Name`: "Demo", `Owner Team`: "Core" }
     }
 
 
+@pytest.mark.parametrize("strict", [False, True])
+def test_backticked_keys_decode_escaped_backslashes(strict: bool) -> None:
+    text = (
+        ("@yini strict\n" if strict else "")
+        + '^ Keys\n`path\\\\name` = "member"\nlabels = { `path\\\\name`: "object" }\n'
+        + ("/END\n" if strict else "")
+    )
+
+    result = loads(text, strict=strict)
+
+    assert result == {
+        "Keys": {
+            "path\\name": "member",
+            "labels": {"path\\name": "object"},
+        },
+    }
+
+
 def test_rejects_plain_key_starting_with_digit() -> None:
     text = """
 ^ Keys

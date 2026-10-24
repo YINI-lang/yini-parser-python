@@ -116,6 +116,19 @@ size = 10
     }
 
 
+@pytest.mark.parametrize("strict", [False, True])
+def test_backticked_section_names_decode_escaped_backslashes(strict: bool) -> None:
+    text = (
+        ("@yini strict\n" if strict else "")
+        + '^ `path\\\\name`\nvalue = "section"\n'
+        + ("/END\n" if strict else "")
+    )
+
+    result = loads(text, strict=strict)
+
+    assert result == {"path\\name": {"value": "section"}}
+
+
 def test_parses_numeric_section_level_shorthand() -> None:
     text = """
 ^ Root

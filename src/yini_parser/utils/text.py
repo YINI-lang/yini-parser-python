@@ -31,10 +31,10 @@ def strip_whitespaces(txt: str) -> str:
 
 def strip_backticks(text: str) -> str:
     """
-    Removes the backtick at the beginning and at the end of the string.
+    Remove enclosing backticks and decode escaped backslashes.
     """
 
     text = text.strip()
     if len(text) >= 2 and text[0] == "`" and text[-1] == "`":
-        return text[1:-1]
+        return text[1:-1].replace("\\\\", "\\")
     return text

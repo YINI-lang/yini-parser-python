@@ -106,6 +106,8 @@ By default, both functions use lenient parsing. To validate a strict document,
 pass `strict=True`; strict documents require one top-level section and a final
 `/END`.
 
+Inside backticked keys and section names, write `\\` for one literal backslash.
+
 See the [YINI specification and documentation](https://yini-lang.org/refs/specification?utm_source=github&utm_medium=referral&utm_campaign=yini_parser_python&utm_content=readme).
 
 ---
@@ -300,6 +302,7 @@ The `tests/` directory contains a focused implementation-local test suite, inclu
 - The public loading API.
 - Values, numbers, strings, lists, and inline objects, including lenient `=` separators and strict `:` enforcement.
 - Sections, nested sections, section depth, and section marker separators.
+- Backticked keys and section names, including escaped backslashes.
 - Strict and lenient parser behavior.
 - `@yini strict` and `@yini lenient` mode declarations.
 - Duplicate keys, repeated sections, and key/section collisions.
@@ -334,11 +337,8 @@ It has also been run against the shared external
 [`yini-test-suite`](https://github.com/YINI-lang/yini-test-suite) conformance suite
 for YINI Specification 1.0.0 RC 6.
 
-Current conformance result:
-- 360 passed
-- 0 failed
-- Lenient and strict modes covered
-- Smoke and golden test suites covered
+The CI conformance workflow runs the smoke and golden suites in both lenient and
+strict modes against a pinned release of `yini-test-suite`.
 
 ---
 
