@@ -17,7 +17,11 @@ from ..utils.antlr import ctx_location
 from ..utils.text import strip_backticks
 
 from .section_headers import parse_section_head
-from .value_decoders import decode_string_token, parse_number_literal
+from .value_decoders import (
+    decode_string_token,
+    normalize_number_literal,
+    parse_number_literal,
+)
 from .validator import YiniValidator
 
 
@@ -286,14 +290,13 @@ class YiniBuilderVisitor(YiniParserVisitor):
         # if an earlier section already exists with this name, the first definition wins.
         existing = target.get(key)
         if isinstance(existing, dict):
-            if not self._validator.handle_key_section_collision(
+            self._validator.handle_key_section_collision(
                 name=key,
                 existing_kind="section",
                 incoming_kind="key",
                 line=line,
                 column=column,
-            ):
-                return None
+            )
 
         # Duplicate key:
         if key in target:
@@ -308,7 +311,7 @@ class YiniBuilderVisitor(YiniParserVisitor):
         return None
 
     def visit_member(self, ctx: YiniParser.MemberContext) -> tuple[str, Any]:
-        key = self._decode_key_token(ctx.KEY(), description="key")
+        key = self._decode_key_token(ctx.identifier().getChild(0), description="key")
         value_ctx = ctx.value()
 
         if value_ctx is None:
@@ -427,12 +430,9 @@ class YiniBuilderVisitor(YiniParserVisitor):
 
         number_token = ctx.NUMBER()
         if number_token is not None:
-            value = parse_number_literal(
-                number_token.getText(),
-                line=line,
-                column=column,
+            return normalize_number_literal(
+                number_token.getText(), line=line, column=column
             )
-            return self._number_to_canonical_string(value)
 
         true_token = ctx.BOOLEAN_TRUE()
         if true_token is not None:
@@ -552,7 +552,9 @@ class YiniBuilderVisitor(YiniParserVisitor):
         - The canonical inline object member separator remains `:`.
         """
 
-        key = self._decode_key_token(ctx.KEY(), description="inline object key")
+        key = self._decode_key_token(
+            ctx.identifier().getChild(0), description="inline object key"
+        )
         value = self.visit(ctx.value())
 
         separator_ctx = ctx.object_member_separator()
@@ -678,29 +680,20 @@ class YiniBuilderVisitor(YiniParserVisitor):
             return
 
         # Existing scalar/other value, incoming section -> collision.
-        if not self._validator.handle_key_section_collision(
+        if parent is self._root:
+            raise YiniParseError(
+                f"Orphan member and top-level section share the name {name!r}.",
+                line=line,
+                column=column,
+            )
+
+        self._validator.handle_key_section_collision(
             name=name,
             existing_kind="key",
             incoming_kind="section",
             line=line,
             column=column,
-        ):
-            self._ignored_section_level = level
-            return
-
-    def _number_to_canonical_string(self, value: int | float) -> str:
-        if isinstance(value, bool):
-            # Defensive only; bool is a subclass of int in Python.
-            return "true" if value else "false"
-
-        if isinstance(value, int):
-            return str(value)
-
-        if isinstance(value, float):
-            # Reasonable first version. You can refine later if needed.
-            return str(value)
-
-        return str(value)
+        )
 
     # def _has_trailing_comma(self, ctx: Any) -> bool:
     #     """

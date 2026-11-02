@@ -129,6 +129,32 @@ def test_backticked_section_names_decode_escaped_backslashes(strict: bool) -> No
     assert result == {"path\\name": {"value": "section"}}
 
 
+@pytest.mark.parametrize("strict", [False, True])
+def test_backticked_section_names_decode_escaped_backticks(strict: bool) -> None:
+    text = (
+        ("@yini\n" if strict else "")
+        + '^ `section\\`name`\nvalue = "section"\n'
+        + ("/END\n" if strict else "")
+    )
+
+    result = loads(text, strict=strict)
+
+    assert result == {"section`name": {"value": "section"}}
+
+
+@pytest.mark.parametrize("strict", [False, True])
+def test_section_header_ignores_block_comments(strict: bool) -> None:
+    text = (
+        ("@yini\n" if strict else "")
+        + "^ Root /* note */\n^^/* note */Child\nvalue = 2\n"
+        + ("/END\n" if strict else "")
+    )
+
+    result = loads(text, strict=strict)
+
+    assert result == {"Root": {"Child": {"value": 2}}}
+
+
 def test_parses_numeric_section_level_shorthand() -> None:
     text = """
 ^ Root

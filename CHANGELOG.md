@@ -6,8 +6,11 @@
 
 ## 1.0.0 release candidate 1 - 2026 October
 - **Changed:** Updated the package version to `1.0.0rc1` for release-candidate testing against YINI Specification 1.0.0 RC.6.
+- **Added:** Support for `command"""` multiline strings, including structural indentation removal and preservation of content line endings. Command strings are parsed as text and are not executed.
+- **Added:** Support for `E`/`e` escaped strings, including triple-quoted forms. `C`/`c` remain valid deprecated aliases.
 - **Added:** Added Dependabot configuration for monthly npm and GitHub Actions dependency updates.
 - **Fixed:** Backticked member keys, inline-object keys, and section names now decode `\\` to one backslash in both lenient and strict modes. Previously, parsed names retained both backslashes.
+- **Fixed:** Single-line raw and escaped strings now preserve literal tabs in both lenient and strict modes, while continuing to reject other disallowed control characters.
 
 ## 1.0.0 beta 1 - 2026 August
 - **Changed:** Bumped the package version to `1.0.0b1` after the parser passed `yini-test-suite` `0.3.0b2`, the **shared conformance suite** with broad coverage of YINI Specification 1.0.0 Release Candidate 6.

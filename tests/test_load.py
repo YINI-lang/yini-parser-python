@@ -4,6 +4,7 @@ from __future__ import annotations
 import pytest
 
 from yini_parser.api.load import load, loads
+from yini_parser.api.errors import YiniParseError
 from yini_parser.api.warnings import YiniParseWarning
 
 
@@ -123,6 +124,31 @@ def test_load_accepts_file_without_final_newline(tmp_path) -> None:
 
     # Assert.
     assert result == {"App": {"name": "demo"}}
+
+
+@pytest.mark.parametrize("ending", ["\r\n", "\r"])
+def test_load_preserves_string_line_endings(tmp_path, ending: str) -> None:
+    path = tmp_path / "line-endings.yini"
+    source = ending.join(["^ App", 'text = """one', 'two"""', ""])
+    path.write_bytes(source.encode("utf-8"))
+
+    result = load(path)
+
+    assert result["App"]["text"] == f"one{ending}two"
+
+
+def test_strict_mode_rejects_mixed_line_endings() -> None:
+    source = "@yini strict\r\n^ App\nvalue = true\r\n/END\r\n"
+
+    with pytest.raises(YiniParseError, match="Mixed line endings"):
+        loads(source, strict=True)
+
+
+def test_strict_mode_rejects_shebang_with_leading_whitespace() -> None:
+    source = " #!/usr/bin/env yini\n^ App\nvalue = true\n/END\n"
+
+    with pytest.raises(YiniParseError, match="shebang must start at column 1"):
+        loads(source, strict=True)
 
 
 def test_loads_accepts_utf8_bom_in_lenient_mode_with_warning() -> None:

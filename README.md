@@ -184,6 +184,8 @@ mode = 'optional'
 - `TLS` is nested under `Server`.
 - The section markers `^` make the nesting explicit. Indentation is optional and not required for structure.
 - Strings can use either `'` or `"`.
+- `E`/`e` strings interpret escapes; `C`/`c` remain valid aliases.
+- `command"""` starts a multiline literal that removes structural indentation and preserves line breaks.
 
 ### JSON
 ```json
@@ -304,7 +306,7 @@ The `tests/` directory contains a focused implementation-local test suite, inclu
 - The public loading API.
 - Values, numbers, strings, lists, and inline objects, including lenient `=` separators and strict `:` enforcement.
 - Sections, nested sections, section depth, and section marker separators.
-- Backticked keys and section names, including escaped backslashes.
+- Backticked keys and section names, including escaped backslashes and backticks.
 - Strict and lenient parser behavior.
 - `@yini strict` and `@yini lenient` mode declarations.
 - Duplicate keys, repeated sections, and key/section collisions.

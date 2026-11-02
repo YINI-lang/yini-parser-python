@@ -10,13 +10,20 @@ from yini_parser.api.warnings import YiniParseWarning
 """
 These rules apply:
 
-- In lenient mode, when duplicate or conflicting definitions occur, the FIRST definition always wins.
+- In lenient mode, when duplicate definitions occur, the FIRST definition always wins.
 - Duplicate keys MUST NOT overwrite an earlier key. Later duplicate keys should emit warnings.
 - Duplicate section names MUST NOT overwrite or merge with an earlier section. Later duplicate section definitions should emit warnings, and the duplicate section block, not only the header line, should be ignored.
-- Key/section name collisions MUST NOT overwrite an earlier definition. In lenient mode, the first definition should win and a warning should be emitted.
+- Member/section name collisions MUST result in an error in both modes.
 - No merging of repeated sections is allowed.
-- In strict mode, duplicate keys, duplicate section names, and key/section name collisions MUST result in an error.
+- In strict mode, duplicate keys and duplicate section names MUST result in an error.
 """
+
+
+def test_orphan_member_and_top_level_section_collision_is_an_error() -> None:
+    text = "@yini\nitem = 1\n^ item\nvalue = 2\n"
+
+    with pytest.raises(YiniParseError, match="Orphan member and top-level section"):
+        loads(text)
 
 
 def test_duplicate_key_first_value_wins_in_lenient_mode() -> None:
@@ -94,9 +101,7 @@ port = 8080
     }
 
 
-def test_key_then_section_name_collision_first_definition_wins_in_lenient_mode() -> (
-    None
-):
+def test_key_then_section_name_collision_errors_in_lenient_mode() -> None:
     text = """
 ^ App
 Server = "localhost"
@@ -105,19 +110,11 @@ Server = "localhost"
 port = 8080
 """.lstrip()
 
-    with pytest.warns(YiniParseWarning, match="Name collision"):
-        result = loads(text)
-
-    assert result == {
-        "App": {
-            "Server": "localhost",
-        },
-    }
+    with pytest.raises(YiniParseError, match="Name collision"):
+        loads(text)
 
 
-def test_section_then_key_name_collision_first_definition_wins_in_lenient_mode() -> (
-    None
-):
+def test_duplicate_parent_section_ignores_later_member_in_lenient_mode() -> None:
     text = """
 ^ App
 ^^ Server
@@ -169,7 +166,7 @@ debug = true
         loads(text)
 
 
-def test_key_section_collision_should_warn_in_lenient_mode() -> None:
+def test_key_section_collision_should_error_in_lenient_mode() -> None:
     text = """
 ^ App
 Server = "localhost"
@@ -178,13 +175,7 @@ Server = "localhost"
 port = 8080
 """.lstrip()
 
-    with pytest.warns(
-        YiniParseWarning,
-        match=(
-            r"Name collision for 'Server' ignored\. "
-            r"A key with this name already exists, so the incoming section was ignored\."
-        ),
-    ):
+    with pytest.raises(YiniParseError, match="Name collision for 'Server'"):
         loads(text)
 
 
@@ -225,7 +216,7 @@ port = 8080
         loads(text, strict=True)
 
 
-def test_section_then_key_name_collision_should_error_in_strict_mode() -> None:
+def test_duplicate_parent_section_should_error_in_strict_mode() -> None:
     text = """
 ^ App
 ^^ Server

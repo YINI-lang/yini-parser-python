@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import Any
+import re
 import warnings
 
 from antlr4 import CommonTokenStream, InputStream, Token
@@ -22,6 +23,7 @@ def loads(text: str, strict: bool = False) -> dict[str, Any]:
     """
 
     text = _normalize_leading_bom(text, strict=strict)
+    _validate_document_text(text, strict=strict)
     text = _ensure_final_newline(text)
     input_stream = InputStream(text)
 
@@ -34,8 +36,10 @@ def load(path: str | Path, strict: bool = False) -> dict[str, Any]:
     """
 
     file_path = Path(path)
-    text = file_path.read_text(encoding="utf-8")
+    with file_path.open("r", encoding="utf-8", newline="") as source:
+        text = source.read()
     text = _normalize_leading_bom(text, strict=strict)
+    _validate_document_text(text, strict=strict)
     text = _ensure_final_newline(text)
     input_stream = InputStream(text)
 
@@ -50,6 +54,7 @@ def _parse_input_stream(input_stream: InputStream, strict: bool) -> dict[str, An
 
     stream = CommonTokenStream(lexer)
     _normalize_shebang_comment_tokens(stream)
+    _validate_command_closing_lines(stream, input_stream)
 
     parser = YiniParser(stream)
     parser_errors = _SyntaxErrorCollector()
@@ -84,6 +89,33 @@ def _ensure_final_newline(text: str) -> str:
         return text + "\n"
 
     return text
+
+
+def _validate_document_text(text: str, *, strict: bool) -> None:
+    if not strict:
+        return
+
+    if re.match(r"[ \t]+#!", text):
+        raise YiniParseError(
+            "A shebang must start at column 1; leading whitespace is invalid in strict mode.",
+            line=1,
+            column=1,
+        )
+
+    first_ending = None
+    for line_number, ending in enumerate(re.finditer(r"\r\n|\r|\n", text), start=1):
+        if first_ending is None:
+            first_ending = ending.group()
+        elif ending.group() != first_ending:
+            raise YiniParseError(
+                "Mixed line endings are not allowed in strict mode.",
+                line=line_number,
+                column=ending.start()
+                - max(
+                    text.rfind("\r", 0, ending.start()),
+                    text.rfind("\n", 0, ending.start()),
+                ),
+            )
 
 
 def _normalize_leading_bom(text: str, *, strict: bool) -> str:
@@ -148,3 +180,27 @@ def _normalize_shebang_comment_tokens(stream: CommonTokenStream) -> None:
         seen_meaningful_token = True
 
     stream.seek(0)
+
+
+def _validate_command_closing_lines(
+    stream: CommonTokenStream, input_stream: InputStream
+) -> None:
+    source = input_stream.strdata
+    for token in stream.tokens:
+        if token.type != YiniLexer.STRING or not token.text.startswith('command"""'):
+            continue
+
+        after_closing = token.stop + 1
+        if after_closing >= len(source) or source[after_closing] in "\r\n":
+            continue
+
+        token_text = token.text
+        line_breaks = (
+            token_text.count("\r") + token_text.count("\n") - token_text.count("\r\n")
+        )
+        last_break = max(token_text.rfind("\r"), token_text.rfind("\n"))
+        raise YiniParseError(
+            "Invalid command string: the closing delimiter must end its line.",
+            line=token.line + line_breaks,
+            column=len(token_text[last_break + 1 :]) + 1,
+        )

@@ -78,6 +78,23 @@ plusNumber = "n-" + +100
     assert result["App"]["plusNumber"] == "n-100"
 
 
+def test_lenient_concatenation_preserves_normalized_decimal_spelling() -> None:
+    text = (
+        '^ App\nvalue = "n:" + 1_000 + "," + 1.50 + "," + 3E+04 + "," + -0'
+        ' + "," + 1e3 + "," + 0xFF\n'
+    )
+
+    result = loads(text)
+
+    assert result["App"]["value"] == "n:1000,1.50,3e04,-0,1e3,255"
+
+
+def test_lenient_concatenation_preserves_nondecimal_negative_zero() -> None:
+    result = loads('^ App\nvalue = "n:" + -0x0\n')
+
+    assert result["App"]["value"] == "n:-0"
+
+
 # ---------
 # Test strict string concatenation.
 # ---------

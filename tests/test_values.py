@@ -108,6 +108,38 @@ letter = C"\o141"
     }
 
 
+@pytest.mark.parametrize("strict", [False, True])
+def test_escaped_prefixes_and_escapes(strict: bool) -> None:
+    text = (
+        ("@yini\n" if strict else "")
+        + "^ App\nupper = E\"a\\nb\"\nlower = e'\\x41\\o7\\?\\/\\`\\0'\n"
+        + 'legacy = c"a\\nb"\ntriple = e"""one\\ntwo"""\n'
+        + ("/END\n" if strict else "")
+    )
+
+    result = loads(text, strict=strict)
+
+    assert result["App"] == {
+        "upper": "a\nb",
+        "lower": "A\x07?/`\0",
+        "legacy": "a\nb",
+        "triple": "one\ntwo",
+    }
+
+
+@pytest.mark.parametrize("strict", [False, True])
+@pytest.mark.parametrize("escape", [r"\z", r"\x1", r"\uD800", r"\U00110000", r"\o400"])
+def test_rejects_invalid_escaped_string_escape(strict: bool, escape: str) -> None:
+    text = (
+        ("@yini\n" if strict else "")
+        + f'^ App\nbad = E"{escape}"\n'
+        + ("/END\n" if strict else "")
+    )
+
+    with pytest.raises(YiniParseError):
+        loads(text, strict=strict)
+
+
 def test_rejects_invalid_classic_octal_escape() -> None:
     text = r"""
 ^ App
@@ -118,8 +150,21 @@ bad = C"\o378"
         loads(text)
 
 
+@pytest.mark.parametrize("strict", [False, True])
+def test_preserves_literal_tabs_in_single_line_strings(strict: bool) -> None:
+    text = (
+        ("@yini\n" if strict else "")
+        + '^ App\nraw = "alpha\tbeta"\nescaped = E"one\ttwo"\n'
+        + ("/END\n" if strict else "")
+    )
+
+    result = loads(text, strict=strict)
+
+    assert result["App"] == {"raw": "alpha\tbeta", "escaped": "one\ttwo"}
+
+
 def test_rejects_literal_control_character_in_string() -> None:
-    text = '^ App\nbad = "alpha\tbeta"\n'
+    text = '^ App\nbad = "alpha\x01beta"\n'
 
     with pytest.raises(YiniParseError):
         loads(text)
@@ -255,3 +300,41 @@ duodecimalValue = 0z_1x_e
             "duodecimalValue": 1 * 12 * 12 + 10 * 12 + 11,
         },
     }
+
+
+@pytest.mark.parametrize("strict", [False, True])
+def test_accepts_signed_64_bit_integer_boundaries(strict: bool) -> None:
+    text = (
+        ("@yini\n" if strict else "")
+        + "^ App\nmax = 9223372036854775807\nmin = -9223372036854775808\n"
+        + ("/END\n" if strict else "")
+    )
+
+    result = loads(text, strict=strict)
+
+    assert result["App"] == {
+        "max": 9223372036854775807,
+        "min": -9223372036854775808,
+    }
+
+
+@pytest.mark.parametrize("strict", [False, True])
+@pytest.mark.parametrize(
+    "number",
+    [
+        "9223372036854775808",
+        "-9223372036854775809",
+        "0x8000000000000000",
+        "1e400",
+        "1e-400",
+    ],
+)
+def test_rejects_number_outside_supported_range(strict: bool, number: str) -> None:
+    text = (
+        ("@yini\n" if strict else "")
+        + f"^ App\nvalue = {number}\n"
+        + ("/END\n" if strict else "")
+    )
+
+    with pytest.raises(YiniParseError):
+        loads(text, strict=strict)
