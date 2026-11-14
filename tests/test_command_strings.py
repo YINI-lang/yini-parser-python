@@ -63,7 +63,7 @@ def test_command_string_in_list_and_concatenation(strict: bool) -> None:
 
 @pytest.mark.parametrize("strict", [False, True])
 @pytest.mark.parametrize("ending", ["\n", "\r\n", "\r"])
-def test_command_string_preserves_line_endings(strict: bool, ending: str) -> None:
+def test_command_string_normalizes_line_endings(strict: bool, ending: str) -> None:
     value = ending.join(['command"""', "  one", "  two", '"""'])
     marker = f"@yini{ending}" if strict else ""
     terminator = f"/END{ending}" if strict else ""
@@ -71,7 +71,7 @@ def test_command_string_preserves_line_endings(strict: bool, ending: str) -> Non
 
     result = loads(source, strict=strict)
 
-    assert result["App"]["script"] == f"one{ending}two"
+    assert result["App"]["script"] == "one\ntwo"
 
 
 @pytest.mark.parametrize("strict", [False, True])

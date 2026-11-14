@@ -4,6 +4,11 @@
 
 ## [Upcoming/Unreleased]
 
+- Implement parser updates to align with YINI Spec RC6x:
+  * **Fixed:** Inline object keys named `hex` now accept values without whitespace after `:`, including nested objects, while hexadecimal value literals retain their numeric meaning.
+  * **Fixed:** `@yini lenient` now emits a mode-mismatch warning in strict mode and continues strict validation instead of rejecting the declaration.
+  * **Added:** Deprecated `%` binary literals now emit a warning recommending `0b` in both parsing modes, including lenient string concatenation.
+
 ## 1.0.0 release candidate 1 - 2026 October
 - **Changed:** Updated the package version to `1.0.0rc1` for release-candidate testing against YINI Specification 1.0.0 RC.6.
 - **Added:** Support for `command"""` multiline strings, including structural indentation removal and preservation of content line endings. Command strings are parsed as text and are not executed.

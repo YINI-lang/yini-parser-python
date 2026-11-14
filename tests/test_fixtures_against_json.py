@@ -7,6 +7,7 @@ import pytest
 
 from yini_parser.utils.text import normalize_newlines
 from yini_parser.api.load import load
+from yini_parser.api.warnings import YiniParseWarning
 
 FIXTURES_DIR = Path("tests/fixtures/smoke-fixtures")
 
@@ -19,9 +20,22 @@ def _fixture_pairs() -> list[tuple[Path, Path]]:
     return [(yini_path, yini_path.with_suffix(".json")) for yini_path in _yini_files()]
 
 
+def _load_fixture(yini_path: Path) -> dict:
+    warning_path = yini_path.with_suffix(".warning.json")
+    if not warning_path.exists():
+        return load(yini_path)
+
+    expected_warnings = json.loads(warning_path.read_text(encoding="utf-8"))
+    with pytest.warns(YiniParseWarning) as caught:
+        result = load(yini_path)
+    for expected in expected_warnings:
+        assert any(expected["contains"] in str(item.message) for item in caught)
+    return result
+
+
 @pytest.mark.parametrize("yini_path", _yini_files(), ids=lambda p: p.name)
 def test_sample_yini_parses_without_crashing(yini_path: Path) -> None:
-    result = load(str(yini_path))
+    result = _load_fixture(yini_path)
     assert isinstance(result, dict)
 
 
@@ -34,7 +48,7 @@ def test_sample_yini_matches_expected_json(yini_path: Path, json_path: Path) -> 
     if not json_path.exists():
         pytest.skip(f"No expected JSON fixture yet for {yini_path.name}")
 
-    actual = load(str(yini_path))
+    actual = _load_fixture(yini_path)
 
     with json_path.open("r", encoding="utf-8") as f:
         expected = json.load(f)

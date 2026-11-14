@@ -66,13 +66,27 @@ def test_loads_parses_empty_value_as_none() -> None:
 name =
 """.lstrip()
 
-    result = loads(text)
+    with pytest.warns(YiniParseWarning, match="empty value"):
+        result = loads(text)
 
     assert result == {
         "App": {
             "name": None,
         },
     }
+
+
+@pytest.mark.parametrize("section", ["", "^ App\n"])
+@pytest.mark.parametrize("comment", ["", "# note", "// note", "/* note */"])
+def test_empty_values_warn_with_member_location(section: str, comment: str) -> None:
+    with pytest.warns(YiniParseWarning, match="empty value") as caught:
+        result = loads(f"{section}value = {comment}\n")
+
+    members = result["App"] if section else result
+    assert members == {"value": None}
+    assert len(caught) == 1
+    assert caught[0].message.line == (2 if section else 1)
+    assert caught[0].message.column == 1
 
 
 def test_loads_parses_empty_object_and_list() -> None:
@@ -127,14 +141,14 @@ def test_load_accepts_file_without_final_newline(tmp_path) -> None:
 
 
 @pytest.mark.parametrize("ending", ["\r\n", "\r"])
-def test_load_preserves_string_line_endings(tmp_path, ending: str) -> None:
+def test_load_normalizes_string_line_endings(tmp_path, ending: str) -> None:
     path = tmp_path / "line-endings.yini"
     source = ending.join(["^ App", 'text = """one', 'two"""', ""])
     path.write_bytes(source.encode("utf-8"))
 
     result = load(path)
 
-    assert result["App"]["text"] == f"one{ending}two"
+    assert result["App"]["text"] == "one\ntwo"
 
 
 def test_strict_mode_rejects_mixed_line_endings() -> None:
@@ -142,6 +156,34 @@ def test_strict_mode_rejects_mixed_line_endings() -> None:
 
     with pytest.raises(YiniParseError, match="Mixed line endings"):
         loads(source, strict=True)
+
+
+def test_lenient_mode_warns_once_for_mixed_source_line_endings() -> None:
+    source = '^ App\r\ntext = """one\rtwo\nthree"""\r\n'
+
+    with pytest.warns(YiniParseWarning, match="mixed-line-endings") as caught:
+        result = loads(source)
+
+    assert result == {"App": {"text": "one\ntwo\nthree"}}
+    assert len(caught) == 1
+
+
+@pytest.mark.parametrize("strict", [False, True])
+def test_escaped_line_endings_do_not_count_as_mixed_source_endings(
+    strict: bool,
+) -> None:
+    result = loads('^ App\ntext = E"one\\r\\ntwo"\n/END\n', strict=strict)
+
+    assert result == {"App": {"text": "one\r\ntwo"}}
+
+
+@pytest.mark.parametrize("ending", ["\r\n", "\r"])
+def test_final_newline_added_by_parser_does_not_trigger_mixed_ending_warning(
+    ending: str,
+) -> None:
+    result = loads(f"^ App{ending}value = 1")
+
+    assert result == {"App": {"value": 1}}
 
 
 def test_strict_mode_rejects_shebang_with_leading_whitespace() -> None:

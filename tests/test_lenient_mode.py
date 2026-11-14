@@ -1,7 +1,10 @@
 # tests/test_lenient_mode.py
 from __future__ import annotations
 
+import pytest
+
 from yini_parser.api.load import loads
+from yini_parser.api.warnings import YiniParseWarning
 
 
 def test_lenient_mode_accepts_document_terminator() -> None:
@@ -25,7 +28,8 @@ def test_lenient_mode_accepts_empty_member_value_as_null() -> None:
 name =
 """.lstrip()
 
-    result = loads(text)
+    with pytest.warns(YiniParseWarning, match="empty value"):
+        result = loads(text)
 
     assert result["App"]["name"] is None
 

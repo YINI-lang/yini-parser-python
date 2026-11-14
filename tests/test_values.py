@@ -5,6 +5,7 @@ import pytest
 
 from yini_parser.api.errors import YiniParseError
 from yini_parser.api.load import loads
+from yini_parser.api.warnings import YiniParseWarning
 
 
 """
@@ -43,7 +44,8 @@ explicitNull = null
 implicitNull =
 """.lstrip()
 
-    result = loads(text)
+    with pytest.warns(YiniParseWarning, match="empty value"):
+        result = loads(text)
 
     assert result == {
         "App": {
@@ -51,6 +53,31 @@ implicitNull =
             "implicitNull": None,
         },
     }
+
+
+@pytest.mark.parametrize("strict", [False, True])
+@pytest.mark.parametrize("ending", ["\n", "\r\n", "\r"])
+@pytest.mark.parametrize("prefix", ["", "r", "E", "c"])
+def test_multiline_strings_normalize_source_line_endings(
+    strict: bool, ending: str, prefix: str
+) -> None:
+    source = ending.join(["^ App", f'text = {prefix}"""first', 'second"""', "/END", ""])
+
+    result = loads(source, strict=strict)
+
+    assert result["App"]["text"] == "first\nsecond"
+
+
+@pytest.mark.parametrize("strict", [False, True])
+@pytest.mark.parametrize("prefix", ["E", "c"])
+def test_multiline_strings_preserve_escape_produced_line_endings(
+    strict: bool, prefix: str
+) -> None:
+    source = f'^ App\r\ntext = {prefix}"""first\\r\\nsecond\r\nthird\\r"""\r\n/END\r\n'
+
+    result = loads(source, strict=strict)
+
+    assert result["App"]["text"] == "first\r\nsecond\nthird\r"
 
 
 def test_parses_numbers() -> None:
@@ -288,7 +315,8 @@ hexColorAlt = hex:FF_AA_00
 duodecimalValue = 0z_1x_e
 """.lstrip()
 
-    result = loads(text)
+    with pytest.warns(YiniParseWarning, match="%.*deprecated.*0b"):
+        result = loads(text)
 
     assert result == {
         "App": {
@@ -300,6 +328,32 @@ duodecimalValue = 0z_1x_e
             "duodecimalValue": 1 * 12 * 12 + 10 * 12 + 11,
         },
     }
+
+
+@pytest.mark.parametrize("strict", [False, True])
+@pytest.mark.parametrize("literal", ["%1010", "+%_10_10", "-%1010"])
+@pytest.mark.parametrize("container", ["{}", "[{}]", "{{number: {}}}"])
+def test_percent_binary_prefix_warns(
+    strict: bool, literal: str, container: str
+) -> None:
+    text = f"^ App\nvalue = {container.format(literal)}\n/END\n"
+
+    with pytest.warns(YiniParseWarning, match="%.*deprecated.*0b") as captured:
+        result = loads(text, strict=strict)
+
+    expected = -10 if literal.startswith("-") else 10
+    if container == "[{}]":
+        assert result["App"]["value"] == [expected]
+    elif container == "{{number: {}}}":
+        assert result["App"]["value"] == {"number": expected}
+    else:
+        assert result["App"]["value"] == expected
+    assert len(captured) == 1
+    warning = captured[0].message
+    assert isinstance(warning, YiniParseWarning)
+    assert warning.code == "deprecated-binary-prefix"
+    assert warning.line == 2
+    assert warning.column == text.splitlines()[1].index(literal) + 1
 
 
 @pytest.mark.parametrize("strict", [False, True])

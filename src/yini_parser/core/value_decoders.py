@@ -1,9 +1,11 @@
 # src/yini_parser/core/value_decoders.py
 import re
 import math
+import warnings
 from typing import NoReturn
 
 from ..api.errors import YiniParseError
+from ..api.warnings import YiniParseWarning
 
 """
 - Parsers reads raw/source text and recognizes its structure as tokens.
@@ -53,7 +55,7 @@ def decode_string_token(
 
     # Triple-quoted string.
     if text.startswith('"""') and text.endswith('"""') and len(text) >= 6:
-        inner = text[3:-3]
+        inner = text[3:-3].replace("\r\n", "\n").replace("\r", "\n")
 
         if prefix in {"C", "c", "E", "e"}:
             return _decode_classic_string(
@@ -140,7 +142,6 @@ def _decode_command_string(
 
     parts = re.split(r"(\r\n|\r|\n)", content)
     lines = parts[::2]
-    content_breaks = parts[1::2]
     first_nonempty_index = next(
         (index for index, part in enumerate(lines) if part.strip(" ")), None
     )
@@ -171,10 +172,7 @@ def _decode_command_string(
             )
         decoded_lines.append(part[min(leading_spaces, indentation) :])
 
-    return "".join(
-        part + (content_breaks[index] if index < len(content_breaks) else "")
-        for index, part in enumerate(decoded_lines)
-    )
+    return "\n".join(decoded_lines)
 
 
 def normalize_number_literal(
@@ -232,9 +230,19 @@ def parse_number_literal(text, line=None, column=None):
             )
 
         if lowered.startswith("%"):
-            return _check_integer_range(
+            value = _check_integer_range(
                 sign * int(body[1:].replace("_", ""), 2), text, line, column
             )
+            warnings.warn(
+                YiniParseWarning(
+                    "The '%' binary prefix is deprecated. Use '0b' instead.",
+                    line=line,
+                    column=column,
+                    code="deprecated-binary-prefix",
+                ),
+                stacklevel=2,
+            )
+            return value
 
         if lowered.startswith("0o"):
             return _check_integer_range(

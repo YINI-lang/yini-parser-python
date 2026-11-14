@@ -13,8 +13,8 @@ class YiniValidator:
     """
     Handles validation policy for strict and lenient parsing.
 
-    Duplicate keys and sections warn in lenient mode and fail in strict mode.
-    Member/section name collisions fail in both modes.
+    Duplicate keys warn in lenient mode and fail in strict mode.
+    Duplicate sections and member/section name collisions fail in both modes.
     """
 
     def __init__(self, strict: bool = False) -> None:
@@ -58,31 +58,13 @@ class YiniValidator:
         *,
         line: int | None = None,
         column: int | None = None,
-    ) -> bool:
-        """
-        Handles duplicate sections.
-
-        Returns:
-            True  -> caller may reuse/merge the existing section
-            False -> caller should ignore the new section block
-        """
-        message = f"Duplicate section {name!r} ignored. The first section is kept."
-
-        if self.strict:
-            raise YiniParseError(
-                f"Duplicate section {name!r} is not allowed in strict mode.",
-                line=line,
-                column=column,
-            )
-
-        self._warn(
-            message,
+    ) -> NoReturn:
+        """Reject duplicate sections in both parsing modes."""
+        raise YiniParseError(
+            f"Duplicate section {name!r} is not allowed.",
             line=line,
             column=column,
-            code="duplicate-section",
         )
-
-        return False
 
     def handle_key_section_collision(
         self,

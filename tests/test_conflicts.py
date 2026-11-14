@@ -10,9 +10,9 @@ from yini_parser.api.warnings import YiniParseWarning
 """
 These rules apply:
 
-- In lenient mode, when duplicate definitions occur, the FIRST definition always wins.
+- In lenient mode, when duplicate keys occur, the FIRST definition always wins.
 - Duplicate keys MUST NOT overwrite an earlier key. Later duplicate keys should emit warnings.
-- Duplicate section names MUST NOT overwrite or merge with an earlier section. Later duplicate section definitions should emit warnings, and the duplicate section block, not only the header line, should be ignored.
+- Duplicate section names MUST produce an error in both modes.
 - Member/section name collisions MUST result in an error in both modes.
 - No merging of repeated sections is allowed.
 - In strict mode, duplicate keys and duplicate section names MUST result in an error.
@@ -60,7 +60,7 @@ pageSize = 25
     }
 
 
-def test_repeated_top_level_section_first_definition_wins_in_lenient_mode() -> None:
+def test_repeated_top_level_section_errors_in_lenient_mode() -> None:
     text = """
 ^ App
 name = "Demo"
@@ -69,17 +69,12 @@ name = "Demo"
 debug = true
 """.lstrip()
 
-    with pytest.warns(YiniParseWarning, match="Duplicate section"):
-        result = loads(text)
-
-    assert result == {
-        "App": {
-            "name": "Demo",
-        },
-    }
+    with pytest.raises(YiniParseError, match="Duplicate section"):
+        loads(text)
 
 
-def test_repeated_nested_section_first_definition_wins_in_lenient_mode() -> None:
+@pytest.mark.parametrize("strict", [False, True])
+def test_repeated_nested_section_errors_in_both_modes(strict: bool) -> None:
     text = """
 ^ App
 ^^ Server
@@ -89,16 +84,8 @@ host = "localhost"
 port = 8080
 """.lstrip()
 
-    with pytest.warns(YiniParseWarning, match="Duplicate section"):
-        result = loads(text)
-
-    assert result == {
-        "App": {
-            "Server": {
-                "host": "localhost",
-            },
-        },
-    }
+    with pytest.raises(YiniParseError, match="Duplicate section"):
+        loads(text + "/END\n", strict=strict)
 
 
 def test_key_then_section_name_collision_errors_in_lenient_mode() -> None:
@@ -114,7 +101,7 @@ port = 8080
         loads(text)
 
 
-def test_duplicate_parent_section_ignores_later_member_in_lenient_mode() -> None:
+def test_duplicate_parent_section_errors_before_later_member_in_lenient_mode() -> None:
     text = """
 ^ App
 ^^ Server
@@ -124,16 +111,8 @@ port = 8080
 Server = "localhost"
 """.lstrip()
 
-    with pytest.warns(YiniParseWarning, match="Duplicate section"):
-        result = loads(text)
-
-    assert result == {
-        "App": {
-            "Server": {
-                "port": 8080,
-            },
-        },
-    }
+    with pytest.raises(YiniParseError, match="Duplicate section"):
+        loads(text)
 
 
 def test_duplicate_key_should_warn_in_lenient_mode() -> None:
@@ -150,7 +129,7 @@ name = "Second"
         loads(text)
 
 
-def test_repeated_section_should_warn_in_lenient_mode() -> None:
+def test_repeated_section_should_error_in_lenient_mode() -> None:
     text = """
 ^ App
 name = "Demo"
@@ -159,9 +138,9 @@ name = "Demo"
 debug = true
 """.lstrip()
 
-    with pytest.warns(
-        YiniParseWarning,
-        match=r"Duplicate section 'App' ignored\. The first section is kept\.",
+    with pytest.raises(
+        YiniParseError,
+        match=r"Duplicate section 'App' is not allowed\.",
     ):
         loads(text)
 

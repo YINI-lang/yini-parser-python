@@ -108,12 +108,19 @@ By default, both functions use lenient parsing. To validate a strict document,
 pass `strict=True`; strict documents require one top-level section and a final
 `/END`.
 
-An explicit `@yini strict` or `@yini lenient` declaration must match the parser's
-active mode. Duplicate sections under the same parent are errors in both modes.
+An explicit `@yini strict` declaration is rejected in lenient mode. An
+`@yini lenient` declaration produces a warning in strict mode, and all strict
+validation rules still apply. Duplicate sections under the same parent are
+errors in both modes.
 In lenient mode, empty member values become `None` with a warning, and duplicate
 keys keep the first value with a warning. Mixed source line endings and misplaced
 shebang-like comments also produce warnings in lenient mode and errors in strict
 mode. The `@include` directive is reserved and is rejected in both modes.
+
+The deprecated `%` binary prefix remains valid in both modes and produces a
+warning recommending `0b` instead. Inline object keys named `hex` work without
+whitespace after the separator: `{ hex:10 }` means `{"hex": 10}`, while
+`{ value: hex:10 }` means `{"value": 16}`.
 
 Inside backticked keys and section names, write `\\` for one literal backslash.
 

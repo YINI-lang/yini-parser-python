@@ -31,10 +31,10 @@ def parse_section_head(
 
     marker = text[0]
 
-    if marker not in {"^", "<", "§"}:
+    if marker not in {"^", "<", ">", "§"}:
         raise YiniParseError(
             f"Invalid section header: {marker!r} is not a valid section marker. "
-            "Use one of: '^', '<', or '§'.",
+            "Use one of: '^', '<', '>', or '§'.",
             line=line,
             column=column,
         )
@@ -87,6 +87,13 @@ def parse_section_head(
             break
 
         name = text[i:].strip()
+
+    if level > 255:
+        raise YiniParseError(
+            "The maximum supported section depth is 255 levels.",
+            line=line,
+            column=column,
+        )
 
     if not name:
         raise YiniParseError(
