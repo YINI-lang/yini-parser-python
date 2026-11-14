@@ -1,6 +1,6 @@
 [project]
 name = "yini-parser"
-version = "1.0.0rc1"
+version = "1.0.0rc2"
 description = "Official Python parser for YINI, an INI-inspired, indentation-insensitive configuration format with clear nested sections and explicit structure."
 readme = "README.md"
 requires-python = ">=3.10"

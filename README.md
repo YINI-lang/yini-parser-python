@@ -1,10 +1,15 @@
 # yini-parser-python
 
-The official Python parser for **YINI** (by the YINI-lang project) — a human-readable, INI-inspired, indentation-insensitive configuration format with clear nested sections, explicit structure, comments, and predictable parsing.  
+The official Python parser for **YINI**, a configuration format inspired by INI.
+YINI supports nested sections, comments, and values such as numbers, booleans,
+lists, and objects. Section markers define the nesting, so indentation is optional.
 
 [![YINI Test Suite](https://github.com/YINI-lang/yini-parser-python/actions/workflows/yini-test-suite.yml/badge.svg)](https://github.com/YINI-lang/yini-parser-python/actions/workflows/yini-test-suite.yml)
 [![PyPI version](https://img.shields.io/pypi/v/yini-parser)](https://pypi.org/project/yini-parser/)
 [![Python versions](https://img.shields.io/pypi/pyversions/yini-parser)](https://pypi.org/project/yini-parser/)
+
+Requires **Python 3.10 or newer**. This parser is a release candidate and targets
+**YINI Specification 1.0.0 RC7**. See the [changelog](CHANGELOG.md) for release details.
 
 ## Project links
 
@@ -17,27 +22,27 @@ The official Python parser for **YINI** (by the YINI-lang project) — a human-r
 
 ## Installation
 
-Install from PyPI:
+Install from PyPI, allowing prerelease versions:
 
 ```bash
-pip install yini-parser
+python -m pip install --pre yini-parser
 ```
 
-The package name on PyPI is:
-```
-yini-parser
-```
+The [--pre option](https://pip.pypa.io/en/stable/cli/pip_install/#cmdoption-pre)
+lets pip select release candidates and other prereleases.
+To upgrade an existing installation, add `--upgrade`.
 
-The Python import name is:
+The package name is `yini-parser`; the Python import name is `yini_parser`:
+
 ```python
 import yini_parser
 ```
 
 ---
 
-## Quick Start
+## Quick start
 
-Example lenient-mode (default) YINI file:
+Save this configuration as `config.yini`:
 
 ```ini
 // A small, practical YINI config.
@@ -57,7 +62,18 @@ pageSize = 25
     useTLS = off
 ```
 
-Conceptually, that parses to JSON-shaped data like this:
+Load it in Python:
+
+```python
+from yini_parser import load
+
+data = load("config.yini")
+
+print(data["App"]["name"])  # Demo App
+print(data["App"]["Server"]["port"])  # 8080
+```
+
+The result is a Python dictionary. Here is the same data shown as JSON:
 
 ```json
 {
@@ -76,18 +92,7 @@ Conceptually, that parses to JSON-shaped data like this:
 }
 ```
 
-Save the preceding configuration as `config.yini`, then parse it:
-
-```python
-from yini_parser import load
-
-data = load("config.yini")
-
-print(data["App"]["name"])  # Demo App
-print(data["App"]["Server"]["port"])  # 8080
-```
-
-Parse a YINI string:
+To parse text directly, use `loads`:
 
 ```python
 from yini_parser import loads
@@ -102,25 +107,67 @@ debug = false
 print(data["App"]["name"])  # Demo App
 ```
 
-Use `load(...)` to parse a file and `loads(...)` to parse a string.
+## API
 
-By default, both functions use lenient parsing. To validate a strict document,
-pass `strict=True`; strict documents require one top-level section and a final
-`/END`.
+| Function | Input | Result |
+| --- | --- | --- |
+| `load(path, strict=False)` | A UTF-8 file, given as a string path or `pathlib.Path`. | A Python dictionary. |
+| `loads(text, strict=False)` | A string containing YINI text. | A Python dictionary. |
+
+Sections and inline objects become dictionaries. Lists become Python lists;
+strings, numbers, and booleans become the corresponding Python types. YINI `null`
+becomes `None`.
+
+Invalid YINI raises `YiniParseError`. Catch it to report a parse error:
+
+```python
+from yini_parser import YiniParseError, load
+
+try:
+    data = load("config.yini")
+except YiniParseError as error:
+    print(f"Could not parse config.yini: {error}")
+```
+
+The error message includes a line and column when available. File access and
+UTF-8 decoding errors use Python's standard exceptions.
+
+## Strict and lenient parsing
+
+Both functions use lenient mode by default. Pass `strict=True` to apply the
+strict rules. A strict document needs exactly one top-level section and a final
+`/END` marker:
+
+```python
+from yini_parser import loads
+
+data = loads('^ App\nname = "Demo App"\n/END\n', strict=True)
+```
+
+Some common differences are:
+
+| Rule | Lenient mode | Strict mode |
+| --- | --- | --- |
+| `/END` marker | Optional. | Required. |
+| Members outside an explicit section | Allowed at the document root. | Rejected. |
+| Empty member value after `=` | Becomes `None` with a warning. | Rejected. |
+| Duplicate key | Keeps the first value and warns. | Rejected. |
+| Trailing comma in a list or inline object | Allowed. | Rejected. |
+| Inline object separator | `:` or `=`. | `:` only. |
 
 An explicit `@yini strict` declaration is rejected in lenient mode. An
 `@yini lenient` declaration produces a warning in strict mode, and all strict
 validation rules still apply. Duplicate sections under the same parent are
-errors in both modes.
-In lenient mode, empty member values become `None` with a warning, and duplicate
-keys keep the first value with a warning. Mixed source line endings and misplaced
-shebang-like comments also produce warnings in lenient mode and errors in strict
-mode. The `@include` directive is reserved and is rejected in both modes.
+errors in both modes. A declaration does not switch the parser's mode.
+
+Warnings use Python's standard `warnings` system and the `YiniParseWarning`
+category, available from `yini_parser.api`. Mixed line endings and a shebang
+(`#!`) outside the start of the first line produce warnings in lenient mode and
+errors in strict mode. The `@include` directive is reserved and is rejected in
+both modes.
 
 The deprecated `%` binary prefix remains valid in both modes and produces a
-warning recommending `0b` instead. Inline object keys named `hex` work without
-whitespace after the separator: `{ hex:10 }` means `{"hex": 10}`, while
-`{ value: hex:10 }` means `{"value": 16}`.
+warning recommending `0b` instead.
 
 Inside backticked keys and section names, write `\\` for one literal backslash.
 
@@ -130,19 +177,15 @@ See the [YINI specification and documentation](https://yini-lang.org/refs/specif
 
 ## Examples
 
-This repository includes small runnable examples in `examples/`.
+This repository includes three runnable examples in [examples/](examples/).
 
-Each Python script reads a `.yini` file from the same directory, so you can compare the configuration input with the code that loads it.
+Each Python script reads a `.yini` file beside it, so you can compare the input
+with the code that loads it.
 
 After cloning this repository, install the package locally:
 
 ```sh
 python -m pip install -e .
-```
-
-If you use Task, the equivalent command is:
-```sh
-task install
 ```
 
 Then run the examples from the repository root:
@@ -153,14 +196,13 @@ python examples/example3.py
 ```
 
 What they show:
-- `examples/example1.py` reads `examples/basic.yini` and prints basic app settings.
-- `examples/example2.py` reads `examples/nested.yini` and shows nested sections as nested Python dictionaries.
-- `examples/example3.py` reads `examples/application.yini`, validates required fields, and prints a small configuration report.
+- [example1.py](examples/example1.py) reads `basic.yini` and prints basic app settings.
+- [example2.py](examples/example2.py) reads `nested.yini` and shows nested sections as dictionaries.
+- [example3.py](examples/example3.py) reads `application.yini`, checks required fields, and prints a configuration report.
 
 More YINI syntax examples are available on the [YINI examples page](https://yini-lang.org/learn-yini/examples/?utm_source=github&utm_campaign=yini_parser_python&utm_content=readme&utm_medium=referral).
 
 Runnable example projects are available in the [YINI demo apps repository](https://github.com/YINI-lang/yini-demo-apps/tree/main/python):
-
 - [Python basic demo](https://github.com/YINI-lang/yini-demo-apps/tree/main/python/basic)
 - [Python medium demo](https://github.com/YINI-lang/yini-demo-apps/tree/main/python/medium)
 
@@ -168,15 +210,16 @@ Runnable example projects are available in the [YINI demo apps repository](https
 
 ## Why YINI?
 
-YINI is intended for configuration files where human readability, explicit structure, and predictable parsing are more important than minimal syntax or maximum flexibility.
+YINI is designed for configuration files that people read and edit by hand.
 
 Compared with common configuration formats:
-- **INI:** YINI supports clearer nested sections and typed values.
-- **JSON:** YINI supports comments and is easier to edit by hand.
+- **INI:** YINI defines nested sections and value types such as numbers and lists.
+- **JSON:** YINI supports comments and does not require quotes around simple keys.
 - **YAML:** YINI does not use indentation to define structure.
 - **TOML:** YINI uses explicit section markers for hierarchy instead of dotted table names.
 
-The same small configuration can be written in several formats:
+<details>
+<summary>Compare the same configuration in YINI, JSON, YAML, and TOML</summary>
 
 ### YINI
 ```ini
@@ -196,9 +239,9 @@ mode = 'optional'
 - `Application` contains the top-level application settings.
 - `Server` is nested under `Application`.
 - `TLS` is nested under `Server`.
-- The section markers `^` make the nesting explicit. Indentation is optional and not required for structure.
+- Section markers `^` define the nesting. Indentation is optional.
 - Strings can use either `'` or `"`.
-- `E`/`e` strings interpret escapes; `C`/`c` remain valid aliases.
+- `E`/`e` strings interpret escapes such as `\n`; `C`/`c` remain valid, deprecated aliases.
 - `command"""` starts a multiline literal that removes structural indentation and preserves line breaks.
 - Source line endings in triple-quoted and command strings become LF (`\n`) in both modes. Characters produced by escape sequences retain their exact values.
 
@@ -250,27 +293,25 @@ enabled = true
 mode = "optional"
 ```
 
-YINI may not be the right choice when you need mature ecosystem support, existing schema tooling, or maximum compatibility with infrastructure that already expects JSON, YAML, or TOML. The format specification and this parser are release candidates. Pin their versions and test against your application's requirements before using them in production.
+</details>
+
+The format and parser are release candidates. Pin the package version and test
+your application's configuration files before using it in production. If your
+tools already require JSON, YAML, or TOML, using that format may be a better fit.
 
 ---
 
 ## Parser implementation
 
-`yini-parser` uses Python parser code generated by ANTLR.
-
-The generated Python parser files are included in the package. Users do **not** need Java or the ANTLR generator tool to install or use `yini-parser`.
-
-ANTLR is a parser-generator tool: it turns the YINI grammar into Python code that can read and validate YINI files.
-
-The ANTLR generator JAR is only needed by maintainers when regenerating parser sources from the grammar, and it is not included in the published Python package.
+The package includes Python parser code generated by ANTLR, a tool that turns
+grammar rules into parser code. You only need Python to use the package. Java
+and the ANTLR generator are needed only by maintainers who regenerate the parser.
 
 ---
 
 ## Feedback and bug reports
 
-If you find a problem, please open an issue on GitHub:
-
-- [Report a bug or issue](https://github.com/YINI-lang/yini-parser-python/issues)
+If you find a problem, [open an issue on GitHub](https://github.com/YINI-lang/yini-parser-python/issues).
 
 When reporting parser behavior, it is helpful to include:
 - The YINI input that caused the issue.
@@ -278,27 +319,22 @@ When reporting parser behavior, it is helpful to include:
 - The actual result or error message.
 - The installed `yini-parser` version.
 - The Python version used.
+- Whether you used strict or lenient mode.
 
 ---
 
 ## Development
 
-For local development:
+From a local checkout, install the development dependencies:
 
 ```bash
 python -m pip install -e ".[dev]"
 ```
 
-or, if using the project Taskfile:
+If you use Task, the equivalent command is:
 
 ```bash
 task install-dev
-```
-
-Generate the ANTLR parser sources:
-
-```bash
-task antlr
 ```
 
 Run the full project check:
@@ -308,66 +344,45 @@ task check
 ```
 
 This runs:
-- The test suite with warnings treated as errors,
-- Ruff lint checks,
-- Ruff formatting checks,
+- The test suite with warnings treated as errors.
+- Ruff lint checks.
+- Ruff formatting checks.
 - mypy type checking.
 
----
-
-## Tests
-
-The `tests/` directory contains a focused implementation-local test suite, including tests for:
-- The public loading API.
-- Values, numbers, strings, lists, and inline objects, including lenient `=` separators and strict `:` enforcement.
-- Sections, nested sections, section depth, and section marker separators.
-- Backticked keys and section names, including escaped backslashes and backticks.
-- Strict and lenient parser behavior.
-- `@yini strict` and `@yini lenient` mode declarations.
-- Duplicate keys, repeated sections, and key/section collisions.
-- String concatenation.
-- Comments, ignored lines, smoke fixtures, and warning/error behavior.
-
-Run the test suite with:
+You can also run the tests directly:
 
 ```bash
 python -m pytest -v -W error
 ```
 
-or, if using the project Taskfile:
+The generated parser is included, so normal development does not need Java.
+Grammar updates are maintained separately; `task antlr` is a maintainer task
+that requires Windows, Java, and the vendored ANTLR JAR.
 
-```bash
-task test
-```
-
-Run the full project check with:
-
-```bash
-task check
-```
+See [Development setup](docs/Development-Setup.md) and the
+[Maintainer guide](docs/Maintainer-Doc.md) for more details.
 
 ---
 
-## 🧪 Testing and Stability
+## Testing and stability
 
-This parser is covered by smoke, integration, and regression tests.
+The local tests cover the loading API, values, nested sections, strict and
+lenient rules, warnings, and error handling.
 
-It has also been run against the shared external
-[`yini-test-suite`](https://github.com/YINI-lang/yini-test-suite) conformance suite
-for YINI Specification 1.0.0 RC 6.
+The parser also passes all 542 cases in
+[`yini-test-suite`](https://github.com/YINI-lang/yini-test-suite) `0.4.0rc1`,
+the shared test suite for YINI Specification 1.0.0 RC7. These tests check both
+strict and lenient parsing. CI runs this pinned suite on pull requests and
+pushes to `main`, and before publishing a release.
 
-The CI conformance workflow runs the smoke and golden suites in both lenient and
-strict modes against a pinned release of `yini-test-suite`.
+Passing these tests helps check compatibility with the specification. Test the
+configuration files your application uses as well.
 
 ---
 
-## Links
+## License
 
-- [YINI specification](https://yini-lang.org/refs/specification?utm_source=github&utm_campaign=yini_parser_python&utm_content=readme&utm_medium=referral)
-- [YINI homepage](https://yini-lang.org?utm_source=github&utm_campaign=yini_parser_python&utm_content=readme&utm_medium=referral)
-- [YINI-lang on GitHub](https://github.com/YINI-lang)
-- [yini-parser on PyPI](https://pypi.org/project/yini-parser/)
-
+Licensed under [Apache License 2.0](LICENSE).
 
 ---
 
