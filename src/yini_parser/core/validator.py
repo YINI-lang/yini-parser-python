@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import warnings
+from typing import NoReturn
 
 from ..api.errors import YiniParseError
 from ..api.warnings import YiniParseWarning
@@ -12,8 +13,8 @@ class YiniValidator:
     """
     Handles validation policy for strict and lenient parsing.
 
-    In strict mode, conflicts are errors.
-    In lenient mode, conflicts are warnings and the first definition wins.
+    Duplicate keys warn in lenient mode and fail in strict mode.
+    Duplicate sections and member/section name collisions fail in both modes.
     """
 
     def __init__(self, strict: bool = False) -> None:
@@ -57,31 +58,13 @@ class YiniValidator:
         *,
         line: int | None = None,
         column: int | None = None,
-    ) -> bool:
-        """
-        Handles duplicate sections.
-
-        Returns:
-            True  -> caller may reuse/merge the existing section
-            False -> caller should ignore the new section block
-        """
-        message = f"Duplicate section {name!r} ignored. The first section is kept."
-
-        if self.strict:
-            raise YiniParseError(
-                f"Duplicate section {name!r} is not allowed in strict mode.",
-                line=line,
-                column=column,
-            )
-
-        self._warn(
-            message,
+    ) -> NoReturn:
+        """Reject duplicate sections in both parsing modes."""
+        raise YiniParseError(
+            f"Duplicate section {name!r} is not allowed.",
             line=line,
             column=column,
-            code="duplicate-section",
         )
-
-        return False
 
     def handle_key_section_collision(
         self,
@@ -91,7 +74,7 @@ class YiniValidator:
         *,
         line: int | None = None,
         column: int | None = None,
-    ) -> bool:
+    ) -> NoReturn:
         """
         Handles name collisions between keys and sections.
 
@@ -104,33 +87,15 @@ class YiniValidator:
             ^ app
             app = "demo"
 
-        Returns:
-            True  -> caller may accept the incoming definition
-            False -> caller should ignore the incoming definition
+        Member and section names share one namespace in both modes.
         """
-        message = (
-            f"Name collision for {name!r} ignored. "
-            f"A {existing_kind} with this name already exists, so the incoming "
-            f"{incoming_kind} was ignored."
-        )
-
-        if self.strict:
-            raise YiniParseError(
-                f"Name collision for {name!r}. "
-                f"A {existing_kind} with this name already exists, so it cannot "
-                f"also be used as a {incoming_kind} in strict mode.",
-                line=line,
-                column=column,
-            )
-
-        self._warn(
-            message,
+        raise YiniParseError(
+            f"Name collision for {name!r}. "
+            f"A {existing_kind} with this name already exists, so it cannot "
+            f"also be used as a {incoming_kind}.",
             line=line,
             column=column,
-            code="key-section-collision",
         )
-
-        return False
 
     def _warn(
         self,

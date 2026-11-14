@@ -3,6 +3,49 @@ import pytest
 from yini_parser import loads, YiniParseError
 
 
+@pytest.mark.parametrize("strict", [False, True])
+@pytest.mark.parametrize("key", ["hex", "HEX", "HeX"])
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [("10", 10), ("1.5", 1.5), ("1e+3", 1000.0), ("0xFF", 255), ("hex:FF", 255)],
+)
+def test_hex_key_without_separator_whitespace(
+    strict: bool, key: str, value: str, expected: int | float
+) -> None:
+    text = f"^ App\nobj = {{ nested: {{ {key}:{value} }} }}\n/END\n"
+
+    assert loads(text, strict=strict)["App"]["obj"] == {"nested": {key: expected}}
+
+
+@pytest.mark.parametrize("strict", [False, True])
+def test_hex_key_after_collection_values_and_trivia(strict: bool) -> None:
+    text = (
+        "^ App\nobj = { values: [hex:10, {hex:20}], /* gap */\n"
+        "# Comment.\n-- Disabled.\n; Comment.\n"
+        "hex:30, other: hex:40 }\n/END\n"
+    )
+
+    assert loads(text, strict=strict)["App"]["obj"] == {
+        "values": [16, {"hex": 20}],
+        "hex": 30,
+        "other": 64,
+    }
+
+
+@pytest.mark.parametrize("strict", [False, True])
+def test_hex_key_keeps_invalid_decimal_value_invalid(strict: bool) -> None:
+    with pytest.raises(YiniParseError):
+        loads("^ App\nobj = {hex:01}\n/END\n", strict=strict)
+
+
+@pytest.mark.parametrize("strict", [False, True])
+def test_hex_key_error_preserves_source_location(strict: bool) -> None:
+    with pytest.raises(YiniParseError) as error:
+        loads("^ App\nobj = {hex:1e9999}\n/END\n", strict=strict)
+
+    assert (error.value.line, error.value.column) == (2, 12)
+
+
 def test_inline_object_equal_separator_is_allowed_in_lenient_mode() -> None:
     text = """
 ^ App

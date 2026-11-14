@@ -7,6 +7,33 @@ from yini_parser.api.load import loads
 from yini_parser.api.errors import YiniParseError
 
 
+@pytest.mark.parametrize("strict", [False, True])
+def test_accepts_greater_than_section_marker(strict: bool) -> None:
+    result = loads("> Root\n>_> Child\n>3 Grandchild\nvalue = 1\n/END\n", strict=strict)
+
+    assert result == {"Root": {"Child": {"Grandchild": {"value": 1}}}}
+
+
+@pytest.mark.parametrize("strict", [False, True])
+def test_accepts_maximum_section_depth(strict: bool) -> None:
+    source = "".join(f"^{level} L{level}\n" for level in range(1, 256))
+
+    result = loads(source + "value = 1\n/END\n", strict=strict)
+
+    current = result
+    for level in range(1, 256):
+        current = current[f"L{level}"]
+    assert current == {"value": 1}
+
+
+@pytest.mark.parametrize("strict", [False, True])
+def test_rejects_section_depth_above_255(strict: bool) -> None:
+    source = "".join(f"^{level} L{level}\n" for level in range(1, 257))
+
+    with pytest.raises(YiniParseError, match="maximum supported section depth is 255"):
+        loads(source + "/END\n", strict=strict)
+
+
 def test_parses_single_top_level_section() -> None:
     text = """
 ^ App
@@ -127,6 +154,32 @@ def test_backticked_section_names_decode_escaped_backslashes(strict: bool) -> No
     result = loads(text, strict=strict)
 
     assert result == {"path\\name": {"value": "section"}}
+
+
+@pytest.mark.parametrize("strict", [False, True])
+def test_backticked_section_names_decode_escaped_backticks(strict: bool) -> None:
+    text = (
+        ("@yini\n" if strict else "")
+        + '^ `section\\`name`\nvalue = "section"\n'
+        + ("/END\n" if strict else "")
+    )
+
+    result = loads(text, strict=strict)
+
+    assert result == {"section`name": {"value": "section"}}
+
+
+@pytest.mark.parametrize("strict", [False, True])
+def test_section_header_ignores_block_comments(strict: bool) -> None:
+    text = (
+        ("@yini\n" if strict else "")
+        + "^ Root /* note */\n^^/* note */Child\nvalue = 2\n"
+        + ("/END\n" if strict else "")
+    )
+
+    result = loads(text, strict=strict)
+
+    assert result == {"Root": {"Child": {"value": 2}}}
 
 
 def test_parses_numeric_section_level_shorthand() -> None:

@@ -47,9 +47,9 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://yini-lang.org?utm_campaign=yini_parser_python&utm_content=pyproject"
+Homepage = "https://yini-lang.org?utm_source=pypi&utm_campaign=yini_parser_python&utm_content=pyproject&utm_medium=referral"
 Repository = "https://github.com/YINI-lang/yini-parser-python"
-Specification = "https://yini-lang.org/refs/specification?utm_campaign=yini_parser_python&utm_content=pyproject"
+Specification = "https://yini-lang.org/refs/specification?utm_source=pypi&utm_campaign=yini_parser_python&utm_content=pyproject&utm_medium=referral"
 Issues = "https://github.com/YINI-lang/yini-parser-python/issues"
 
 [build-system]

@@ -1,7 +1,11 @@
 # src/yini_parser/core/value_decoders.py
+import re
+import math
+import warnings
 from typing import NoReturn
 
 from ..api.errors import YiniParseError
+from ..api.warnings import YiniParseWarning
 
 """
 - Parsers reads raw/source text and recognizes its structure as tokens.
@@ -12,6 +16,10 @@ _CLASSIC_SIMPLE_ESCAPES = {
     "\\": "\\",
     '"': '"',
     "'": "'",
+    "`": "`",
+    "/": "/",
+    "0": "\0",
+    "?": "?",
     "a": "\a",
     "b": "\b",
     "f": "\f",
@@ -29,36 +37,27 @@ def decode_string_token(
     column: int | None = None,
 ) -> str:
     """
-    Minimal first-pass string decoding.
-
-    Handles:
-    - Optional prefixes: R/r and C/c.
-    - Single/double quoted strings.
-    - Triple-quoted strings.
-    - Simple quote stripping.
-
-    Unprefixed strings are treated as raw strings.
-    C-prefixed strings decode escape sequences.
+    Decode raw, escaped, and command string tokens.
     """
     text = token_text
 
     if not text:
         return ""
 
+    if text.startswith('command"""'):
+        return _decode_command_string(text, line=line, column=column)
+
     prefix = ""
 
-    if len(text) >= 2 and text[0] in "RrCc" and text[1] in {'"', "'"}:
-        prefix = text[0]
-        text = text[1:]
-    elif len(text) >= 4 and text[0] in "RrCc" and text[1:4] == '"""':
+    if len(text) >= 2 and text[0] in "RrCcEe" and text[1] in {'"', "'"}:
         prefix = text[0]
         text = text[1:]
 
     # Triple-quoted string.
     if text.startswith('"""') and text.endswith('"""') and len(text) >= 6:
-        inner = text[3:-3]
+        inner = text[3:-3].replace("\r\n", "\n").replace("\r", "\n")
 
-        if prefix in {"C", "c"}:
+        if prefix in {"C", "c", "E", "e"}:
             return _decode_classic_string(
                 inner,
                 allow_line_breaks=True,
@@ -89,7 +88,7 @@ def decode_string_token(
             return inner
 
         # Classic strings: decode escapes.
-        if prefix in {"C", "c"}:
+        if prefix in {"C", "c", "E", "e"}:
             return _decode_classic_string(
                 inner,
                 allow_line_breaks=False,
@@ -104,6 +103,96 @@ def decode_string_token(
         line=line,
         column=column,
     )
+
+
+def _decode_command_string(
+    text: str,
+    *,
+    line: int | None = None,
+    column: int | None = None,
+) -> str:
+    opening = re.match(r'command"""(?:\r\n|\r|\n)', text)
+    if opening is None:
+        raise YiniParseError(
+            "Invalid command string: the opening delimiter must end its line.",
+            line=line,
+            column=column,
+        )
+
+    remainder = text[opening.end() :]
+    closing_breaks = list(re.finditer(r"\r\n|\r|\n", remainder))
+    if not closing_breaks:
+        content = ""
+        closing_line = remainder
+    else:
+        last_break = closing_breaks[-1]
+        content = remainder[: last_break.start()]
+        closing_line = remainder[last_break.end() :]
+
+    if re.fullmatch(r' *"""', closing_line) is None:
+        raise YiniParseError(
+            "Invalid command string: the closing delimiter must be alone on its line.",
+            line=line,
+            column=column,
+        )
+
+    _validate_string_content(content, allow_line_breaks=True, line=line, column=column)
+    if not content:
+        return ""
+
+    parts = re.split(r"(\r\n|\r|\n)", content)
+    lines = parts[::2]
+    first_nonempty_index = next(
+        (index for index, part in enumerate(lines) if part.strip(" ")), None
+    )
+    indentation = (
+        len(lines[first_nonempty_index]) - len(lines[first_nonempty_index].lstrip(" "))
+        if first_nonempty_index is not None
+        else max(len(part) for part in lines)
+    )
+
+    decoded_lines = []
+    for index, part in enumerate(lines):
+        leading_spaces = len(part) - len(part.lstrip(" "))
+        if part.strip(" ") and leading_spaces < indentation:
+            raise YiniParseError(
+                "Invalid command string: a content line has less than the structural indentation.",
+                line=line,
+                column=column,
+            )
+        if (
+            first_nonempty_index is not None
+            and index < first_nonempty_index
+            and leading_spaces > indentation
+        ):
+            raise YiniParseError(
+                "Invalid command string: a space-only line exceeds the structural indentation.",
+                line=line,
+                column=column,
+            )
+        decoded_lines.append(part[min(leading_spaces, indentation) :])
+
+    return "\n".join(decoded_lines)
+
+
+def normalize_number_literal(
+    text: str,
+    *,
+    line: int | None = None,
+    column: int | None = None,
+) -> str:
+    """Normalize from source spelling, then validate the numeric value."""
+    unsigned = text.lstrip("+-")
+    if unsigned.lower().startswith(("0x", "0b", "0o", "0z", "hex:", "%")):
+        parsed_value = parse_number_literal(text, line=line, column=column)
+        if parsed_value == 0 and text.startswith("-"):
+            return "-0"
+        return str(parsed_value)
+
+    normalized = text.replace("_", "").lstrip("+").replace("E", "e")
+    normalized = normalized.replace("e+", "e")
+    parse_number_literal(text, line=line, column=column)
+    return normalized
 
 
 def parse_number_literal(text, line=None, column=None):
@@ -128,33 +217,66 @@ def parse_number_literal(text, line=None, column=None):
         """
         if lowered.startswith("hex:"):
             cleaned = body.split(":", 1)[1].strip().replace("_", "")
-            return sign * int(cleaned, 16)
+            return _check_integer_range(sign * int(cleaned, 16), text, line, column)
 
         if lowered.startswith("0x"):
-            return sign * int(body[2:].replace("_", ""), 16)
+            return _check_integer_range(
+                sign * int(body[2:].replace("_", ""), 16), text, line, column
+            )
 
         if lowered.startswith("0b"):
-            return sign * int(body[2:].replace("_", ""), 2)
+            return _check_integer_range(
+                sign * int(body[2:].replace("_", ""), 2), text, line, column
+            )
 
         if lowered.startswith("%"):
-            return sign * int(body[1:].replace("_", ""), 2)
+            value = _check_integer_range(
+                sign * int(body[1:].replace("_", ""), 2), text, line, column
+            )
+            warnings.warn(
+                YiniParseWarning(
+                    "The '%' binary prefix is deprecated. Use '0b' instead.",
+                    line=line,
+                    column=column,
+                    code="deprecated-binary-prefix",
+                ),
+                stacklevel=2,
+            )
+            return value
 
         if lowered.startswith("0o"):
-            return sign * int(body[2:].replace("_", ""), 8)
+            return _check_integer_range(
+                sign * int(body[2:].replace("_", ""), 8), text, line, column
+            )
 
         if lowered.startswith("0z"):
-            return sign * _parse_duodecimal(
+            value = sign * _parse_duodecimal(
                 body[2:].replace("_", ""),
                 line=line,
                 column=column,
             )
+            return _check_integer_range(value, text, line, column)
 
         decimal_text = text.replace("_", "")
 
         if any(ch in decimal_text for ch in ".eE"):
-            return float(decimal_text)
+            value = float(decimal_text)
+            if not math.isfinite(value):
+                raise YiniParseError(
+                    f"Floating-point literal overflows binary64: {text!r}",
+                    line=line,
+                    column=column,
+                )
+            significand = re.split("[eE]", decimal_text, maxsplit=1)[0]
+            if value == 0.0 and any(char in "123456789" for char in significand):
+                raise YiniParseError(
+                    f"Floating-point literal underflows to zero: {text!r}",
+                    line=line,
+                    column=column,
+                )
+            return value
 
-        return int(decimal_text, 10)
+        return _check_integer_range(int(decimal_text, 10), text, line, column)
 
     except YiniParseError:
         raise
@@ -165,6 +287,18 @@ def parse_number_literal(text, line=None, column=None):
             line=line,
             column=column,
         ) from None
+
+
+def _check_integer_range(
+    value: int, text: str, line: int | None, column: int | None
+) -> int:
+    if not -(1 << 63) <= value < (1 << 63):
+        raise YiniParseError(
+            f"Integer literal is outside the signed 64-bit range: {text!r}",
+            line=line,
+            column=column,
+        )
+    return value
 
 
 def _decode_classic_string(
@@ -206,18 +340,22 @@ def _decode_classic_string(
             continue
 
         if escape == "o":
-            result.append(
-                _decode_digits_escape(
-                    inner,
-                    start=index + 2,
-                    length=3,
-                    base=8,
-                    prefix="\\o",
+            digits = re.match(r"[0-7]{1,3}", inner[index + 2 :])
+            if digits is None or int(digits.group(), 8) > 0o377:
+                _raise_invalid_escape(
+                    "Invalid string escape sequence: \\o requires 1 to 3 octal digits in the range 0 to 377.",
                     line=line,
                     column=column,
                 )
-            )
-            index += 5
+            next_index = index + 2 + len(digits.group())
+            if next_index < len(inner) and inner[next_index] in "89":
+                _raise_invalid_escape(
+                    "Invalid string escape sequence: octal digits must be in the range 0 to 7.",
+                    line=line,
+                    column=column,
+                )
+            result.append(chr(int(digits.group(), 8)))
+            index = next_index
             continue
 
         if escape == "x":
@@ -285,7 +423,7 @@ def _validate_string_content(
         if ord(char) >= 0x20:
             continue
 
-        if allow_line_breaks and char in {"\n", "\r", "\t"}:
+        if char == "\t" or (allow_line_breaks and char in {"\n", "\r"}):
             continue
 
         raise YiniParseError(
@@ -316,7 +454,10 @@ def _decode_digits_escape(
         )
 
     try:
-        return chr(int(digits, base))
+        value = int(digits, base)
+        if 0xD800 <= value <= 0xDFFF:
+            raise ValueError("Unicode surrogate escape")
+        return chr(value)
     except ValueError:
         _raise_invalid_escape(
             f"Invalid string escape sequence: {prefix}{digits}.",

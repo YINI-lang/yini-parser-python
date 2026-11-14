@@ -17,7 +17,11 @@ from ..utils.antlr import ctx_location
 from ..utils.text import strip_backticks
 
 from .section_headers import parse_section_head
-from .value_decoders import decode_string_token, parse_number_literal
+from .value_decoders import (
+    decode_string_token,
+    normalize_number_literal,
+    parse_number_literal,
+)
 from .validator import YiniValidator
 
 
@@ -39,8 +43,9 @@ class YiniBuilderVisitor(YiniParserVisitor):
     - Numbers become int or float.
 
     Conflict behavior:
-    - lenient mode: first definition wins, later conflicting definitions warn
-    - strict mode: conflicting definitions raise YiniParseError
+    - Lenient mode keeps the first duplicate key and warns.
+    - Strict mode rejects duplicate keys.
+    - Both modes reject duplicate sections and key/section collisions.
     """
 
     def __init__(self, strict: bool = False) -> None:
@@ -49,7 +54,6 @@ class YiniBuilderVisitor(YiniParserVisitor):
         self._root: dict[str, Any] = {}
         self._section_stack: list[dict[str, Any]] = []
         self._section_names: list[str] = []
-        self._ignored_section_level: int | None = None
         self._top_level_section_count = 0
         self._seen_content = False
         self._validator = YiniValidator(strict=strict)
@@ -100,13 +104,6 @@ class YiniBuilderVisitor(YiniParserVisitor):
                 column=column,
             )
 
-            # If we are inside an ignored duplicate/conflicting section block,
-            # skip deeper nested sections too. Resume only at same or shallower level.
-            if self._ignored_section_level is not None:
-                if level > self._ignored_section_level:
-                    return None
-                self._ignored_section_level = None
-
             if self._strict and level == 1:
                 self._top_level_section_count += 1
                 if self._top_level_section_count > 1:
@@ -122,10 +119,6 @@ class YiniBuilderVisitor(YiniParserVisitor):
                 line=line,
                 column=column,
             )
-            return None
-
-        # Skip assignments while inside an ignored duplicate/conflicting section block.
-        if self._ignored_section_level is not None:
             return None
 
         meta_ctx = ctx.meta_stmt()
@@ -152,7 +145,7 @@ class YiniBuilderVisitor(YiniParserVisitor):
         Handles metadata-level statements.
 
         A meta statement can be:
-        - A valid directive, such as `@yini`, `@yini strict`, or `@include`.
+        - A valid directive, such as `@yini` or `@yini strict`.
         - A valid annotation, currently recognized but ignored.
         - Invalid metadata text, which must raise a parse error.
         """
@@ -176,9 +169,13 @@ class YiniBuilderVisitor(YiniParserVisitor):
         if yini_directive_ctx is not None:
             return self.visit(yini_directive_ctx)
 
-        # @include is reserved/recognized but has no runtime behavior yet.
         if ctx.INCLUDE_TOKEN() is not None:
-            return None
+            line, column = ctx_location(ctx)
+            raise YiniParseError(
+                "The @include directive is reserved for future use.",
+                line=line,
+                column=column,
+            )
 
         return None
 
@@ -226,9 +223,8 @@ class YiniBuilderVisitor(YiniParserVisitor):
                 "This document declares '@yini lenient', but the parser is running in strict mode.",
                 line=line,
                 column=column,
-                code="YINI_MODE_MISMATCH",
+                code="mode-mismatch",
             )
-            return None
 
         return None
 
@@ -286,14 +282,13 @@ class YiniBuilderVisitor(YiniParserVisitor):
         # if an earlier section already exists with this name, the first definition wins.
         existing = target.get(key)
         if isinstance(existing, dict):
-            if not self._validator.handle_key_section_collision(
+            self._validator.handle_key_section_collision(
                 name=key,
                 existing_kind="section",
                 incoming_kind="key",
                 line=line,
                 column=column,
-            ):
-                return None
+            )
 
         # Duplicate key:
         if key in target:
@@ -308,19 +303,28 @@ class YiniBuilderVisitor(YiniParserVisitor):
         return None
 
     def visit_member(self, ctx: YiniParser.MemberContext) -> tuple[str, Any]:
-        key = self._decode_key_token(ctx.KEY(), description="key")
+        key = self._decode_key_token(ctx.identifier().getChild(0), description="key")
+        equals = ctx.EQ().getSymbol()
+        self._require_same_line(ctx.identifier().stop, equals, "A member key and '='")
         value_ctx = ctx.value()
 
         if value_ctx is None:
+            line, column = ctx_location(ctx)
             if self._strict:
-                line, column = ctx_location(ctx)
                 raise YiniParseError(
                     "Strict mode does not allow empty member values. Use 'null' explicitly.",
                     line=line,
                     column=column,
                 )
+            self._add_warning(
+                "An empty value is treated as null in lenient mode. Use 'null' explicitly.",
+                line=line,
+                column=column,
+                code="empty-value",
+            )
             return key, None
 
+        self._require_same_line(equals, value_ctx.start, "A member value and '='")
         value = self.visit(value_ctx)
         return key, value
 
@@ -389,8 +393,15 @@ class YiniBuilderVisitor(YiniParserVisitor):
             )
         )
 
+        previous_token = first_token.getSymbol()
         for tail_ctx in ctx.concat_tail():
+            self._require_same_line(
+                previous_token,
+                tail_ctx.PLUS().getSymbol(),
+                "A concatenation operator and the preceding operand",
+            )
             operands.append(self.visit(tail_ctx))
+            previous_token = tail_ctx.stop
 
         if self._strict:
             for operand in operands:
@@ -425,14 +436,12 @@ class YiniBuilderVisitor(YiniParserVisitor):
                 column=column,
             )
 
-        number_token = ctx.NUMBER()
-        if number_token is not None:
-            value = parse_number_literal(
-                number_token.getText(),
-                line=line,
-                column=column,
+        number_ctx = ctx.number_literal()
+        if number_ctx is not None:
+            self._validate_number_sign(number_ctx)
+            return normalize_number_literal(
+                number_ctx.getText(), line=line, column=column
             )
-            return self._number_to_canonical_string(value)
 
         true_token = ctx.BOOLEAN_TRUE()
         if true_token is not None:
@@ -471,6 +480,7 @@ class YiniBuilderVisitor(YiniParserVisitor):
         self, ctx: YiniParser.Number_literalContext
     ) -> int | float:
         line, column = ctx_location(ctx)
+        self._validate_number_sign(ctx)
         return parse_number_literal(
             ctx.getText().strip(),
             line=line,
@@ -552,10 +562,22 @@ class YiniBuilderVisitor(YiniParserVisitor):
         - The canonical inline object member separator remains `:`.
         """
 
-        key = self._decode_key_token(ctx.KEY(), description="inline object key")
+        key = self._decode_key_token(
+            ctx.identifier().getChild(0), description="inline object key"
+        )
+        separator_ctx = ctx.object_member_separator()
+        self._require_same_line(
+            ctx.identifier().stop,
+            separator_ctx.start,
+            "An inline object key and its separator",
+        )
+        self._require_same_line(
+            separator_ctx.stop,
+            ctx.value().start,
+            "An inline object value and its separator",
+        )
         value = self.visit(ctx.value())
 
-        separator_ctx = ctx.object_member_separator()
         separator = (
             separator_ctx.getText().strip() if separator_ctx is not None else ":"
         )
@@ -601,6 +623,26 @@ class YiniBuilderVisitor(YiniParserVisitor):
     # ------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------
+
+    def _require_same_line(self, left: Any, right: Any, description: str) -> None:
+        """Keep logical line boundaries inside skipped block comments."""
+        source = left.getInputStream().strdata
+        between = source[left.stop + 1 : right.start]
+        if "\r" in between or "\n" in between:
+            raise YiniParseError(
+                f"{description} must appear on the same logical line.",
+                line=right.line,
+                column=right.column + 1,
+            )
+
+    def _validate_number_sign(self, ctx: YiniParser.Number_literalContext) -> None:
+        number = ctx.NUMBER().getSymbol()
+        if ctx.start is not number and ctx.start.stop + 1 != number.start:
+            raise YiniParseError(
+                "A numeric sign must immediately precede the number.",
+                line=ctx.start.line,
+                column=ctx.start.column + 1,
+            )
 
     def _current_container(self) -> dict[str, Any]:
         if self._section_stack:
@@ -662,45 +704,29 @@ class YiniBuilderVisitor(YiniParserVisitor):
             self._section_names.append(name)
             return
 
-        # Duplicate section name: first definition wins.
+        # Duplicate section names are invalid in both modes.
         if isinstance(existing, dict):
-            if not self._validator.handle_duplicate_section(
+            self._validator.handle_duplicate_section(
                 name,
                 line=line,
                 column=column,
-            ):
-                self._ignored_section_level = level
-                return
-
-            # If validator policy ever changes to allow this.
-            self._section_stack.append(existing)
-            self._section_names.append(name)
-            return
+            )
 
         # Existing scalar/other value, incoming section -> collision.
-        if not self._validator.handle_key_section_collision(
+        if parent is self._root:
+            raise YiniParseError(
+                f"Orphan member and top-level section share the name {name!r}.",
+                line=line,
+                column=column,
+            )
+
+        self._validator.handle_key_section_collision(
             name=name,
             existing_kind="key",
             incoming_kind="section",
             line=line,
             column=column,
-        ):
-            self._ignored_section_level = level
-            return
-
-    def _number_to_canonical_string(self, value: int | float) -> str:
-        if isinstance(value, bool):
-            # Defensive only; bool is a subclass of int in Python.
-            return "true" if value else "false"
-
-        if isinstance(value, int):
-            return str(value)
-
-        if isinstance(value, float):
-            # Reasonable first version. You can refine later if needed.
-            return str(value)
-
-        return str(value)
+        )
 
     # def _has_trailing_comma(self, ctx: Any) -> bool:
     #     """

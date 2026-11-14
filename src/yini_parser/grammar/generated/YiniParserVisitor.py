@@ -1,4 +1,4 @@
-# Generated from ./grammar/v1.0.0-rc.6/YiniParser.g4 by ANTLR 4.13.2
+# Generated from ./grammar/v1.0.0-rc.6x/YiniParser.g4 by ANTLR 4.13.2
 from antlr4 import *
 if "." in __name__:
     from .YiniParser import YiniParser
@@ -79,8 +79,18 @@ class YiniParserVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by YiniParser#line_end.
+    def visitLine_end(self, ctx:YiniParser.Line_endContext):
+        return self.visitChildren(ctx)
+
+
     # Visit a parse tree produced by YiniParser#assignment.
     def visitAssignment(self, ctx:YiniParser.AssignmentContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by YiniParser#identifier.
+    def visitIdentifier(self, ctx:YiniParser.IdentifierContext):
         return self.visitChildren(ctx)
 
 
@@ -146,6 +156,11 @@ class YiniParserVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by YiniParser#elements.
     def visitElements(self, ctx:YiniParser.ElementsContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by YiniParser#multiline_trivia.
+    def visitMultiline_trivia(self, ctx:YiniParser.Multiline_triviaContext):
         return self.visitChildren(ctx)
 
 

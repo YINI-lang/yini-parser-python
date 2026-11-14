@@ -8,8 +8,8 @@ The official Python parser for **YINI** (by the YINI-lang project) — a human-r
 
 ## Project links
 
-- [YINI homepage](https://yini-lang.org?utm_source=github&utm_medium=referral&utm_campaign=yini_parser_python&utm_content=readme_project_links)
-- [YINI specification](https://yini-lang.org/refs/specification?utm_source=github&utm_medium=referral&utm_campaign=yini_parser_python&utm_content=readme_project_links)
+- [YINI homepage](https://yini-lang.org?utm_source=github&utm_campaign=yini_parser_python&utm_content=readme_project_links&utm_medium=referral)
+- [YINI specification](https://yini-lang.org/refs/specification?utm_source=github&utm_campaign=yini_parser_python&utm_content=readme_project_links&utm_medium=referral)
 - [GitHub repository](https://github.com/YINI-lang/yini-parser-python)
 - [Bug reports and issues](https://github.com/YINI-lang/yini-parser-python/issues)
 
@@ -108,9 +108,23 @@ By default, both functions use lenient parsing. To validate a strict document,
 pass `strict=True`; strict documents require one top-level section and a final
 `/END`.
 
+An explicit `@yini strict` declaration is rejected in lenient mode. An
+`@yini lenient` declaration produces a warning in strict mode, and all strict
+validation rules still apply. Duplicate sections under the same parent are
+errors in both modes.
+In lenient mode, empty member values become `None` with a warning, and duplicate
+keys keep the first value with a warning. Mixed source line endings and misplaced
+shebang-like comments also produce warnings in lenient mode and errors in strict
+mode. The `@include` directive is reserved and is rejected in both modes.
+
+The deprecated `%` binary prefix remains valid in both modes and produces a
+warning recommending `0b` instead. Inline object keys named `hex` work without
+whitespace after the separator: `{ hex:10 }` means `{"hex": 10}`, while
+`{ value: hex:10 }` means `{"value": 16}`.
+
 Inside backticked keys and section names, write `\\` for one literal backslash.
 
-See the [YINI specification and documentation](https://yini-lang.org/refs/specification?utm_source=github&utm_medium=referral&utm_campaign=yini_parser_python&utm_content=readme).
+See the [YINI specification and documentation](https://yini-lang.org/refs/specification?utm_source=github&utm_campaign=yini_parser_python&utm_content=readme&utm_medium=referral).
 
 ---
 
@@ -143,7 +157,7 @@ What they show:
 - `examples/example2.py` reads `examples/nested.yini` and shows nested sections as nested Python dictionaries.
 - `examples/example3.py` reads `examples/application.yini`, validates required fields, and prints a small configuration report.
 
-More YINI syntax examples are available on the [YINI examples page](https://yini-lang.org/learn-yini/examples/?utm_source=yini-parser-python&utm_medium=github&utm_campaign=repo-link&utm_content=readme).
+More YINI syntax examples are available on the [YINI examples page](https://yini-lang.org/learn-yini/examples/?utm_source=github&utm_campaign=yini_parser_python&utm_content=readme&utm_medium=referral).
 
 Runnable example projects are available in the [YINI demo apps repository](https://github.com/YINI-lang/yini-demo-apps/tree/main/python):
 
@@ -184,6 +198,9 @@ mode = 'optional'
 - `TLS` is nested under `Server`.
 - The section markers `^` make the nesting explicit. Indentation is optional and not required for structure.
 - Strings can use either `'` or `"`.
+- `E`/`e` strings interpret escapes; `C`/`c` remain valid aliases.
+- `command"""` starts a multiline literal that removes structural indentation and preserves line breaks.
+- Source line endings in triple-quoted and command strings become LF (`\n`) in both modes. Characters produced by escape sequences retain their exact values.
 
 ### JSON
 ```json
@@ -304,7 +321,7 @@ The `tests/` directory contains a focused implementation-local test suite, inclu
 - The public loading API.
 - Values, numbers, strings, lists, and inline objects, including lenient `=` separators and strict `:` enforcement.
 - Sections, nested sections, section depth, and section marker separators.
-- Backticked keys and section names, including escaped backslashes.
+- Backticked keys and section names, including escaped backslashes and backticks.
 - Strict and lenient parser behavior.
 - `@yini strict` and `@yini lenient` mode declarations.
 - Duplicate keys, repeated sections, and key/section collisions.
@@ -346,8 +363,8 @@ strict modes against a pinned release of `yini-test-suite`.
 
 ## Links
 
-- [YINI specification](https://yini-lang.org/refs/specification?utm_source=github&utm_medium=referral&utm_campaign=yini_parser_python&utm_content=readme)
-- [YINI homepage](https://yini-lang.org?utm_source=github&utm_medium=referral&utm_campaign=yini_parser_python&utm_content=readme)
+- [YINI specification](https://yini-lang.org/refs/specification?utm_source=github&utm_campaign=yini_parser_python&utm_content=readme&utm_medium=referral)
+- [YINI homepage](https://yini-lang.org?utm_source=github&utm_campaign=yini_parser_python&utm_content=readme&utm_medium=referral)
 - [YINI-lang on GitHub](https://github.com/YINI-lang)
 - [yini-parser on PyPI](https://pypi.org/project/yini-parser/)
 
@@ -359,4 +376,4 @@ strict modes against a pinned release of `yini-test-suite`.
 > 
 > It has a formal specification and a defined grammar.
 
-[yini-lang.org](https://yini-lang.org/?utm_source=github&utm_campaign=yini_parser_python&utm_medium=referral&utm_content=readme_footer) · [YINI-lang on GitHub](https://github.com/YINI-lang)  
+[yini-lang.org](https://yini-lang.org/?utm_source=github&utm_campaign=yini_parser_python&utm_content=readme_footer&utm_medium=referral) · [YINI-lang on GitHub](https://github.com/YINI-lang)  

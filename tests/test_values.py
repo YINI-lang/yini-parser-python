@@ -5,6 +5,7 @@ import pytest
 
 from yini_parser.api.errors import YiniParseError
 from yini_parser.api.load import loads
+from yini_parser.api.warnings import YiniParseWarning
 
 
 """
@@ -43,7 +44,8 @@ explicitNull = null
 implicitNull =
 """.lstrip()
 
-    result = loads(text)
+    with pytest.warns(YiniParseWarning, match="empty value"):
+        result = loads(text)
 
     assert result == {
         "App": {
@@ -51,6 +53,31 @@ implicitNull =
             "implicitNull": None,
         },
     }
+
+
+@pytest.mark.parametrize("strict", [False, True])
+@pytest.mark.parametrize("ending", ["\n", "\r\n", "\r"])
+@pytest.mark.parametrize("prefix", ["", "r", "E", "c"])
+def test_multiline_strings_normalize_source_line_endings(
+    strict: bool, ending: str, prefix: str
+) -> None:
+    source = ending.join(["^ App", f'text = {prefix}"""first', 'second"""', "/END", ""])
+
+    result = loads(source, strict=strict)
+
+    assert result["App"]["text"] == "first\nsecond"
+
+
+@pytest.mark.parametrize("strict", [False, True])
+@pytest.mark.parametrize("prefix", ["E", "c"])
+def test_multiline_strings_preserve_escape_produced_line_endings(
+    strict: bool, prefix: str
+) -> None:
+    source = f'^ App\r\ntext = {prefix}"""first\\r\\nsecond\r\nthird\\r"""\r\n/END\r\n'
+
+    result = loads(source, strict=strict)
+
+    assert result["App"]["text"] == "first\r\nsecond\nthird\r"
 
 
 def test_parses_numbers() -> None:
@@ -108,6 +135,38 @@ letter = C"\o141"
     }
 
 
+@pytest.mark.parametrize("strict", [False, True])
+def test_escaped_prefixes_and_escapes(strict: bool) -> None:
+    text = (
+        ("@yini\n" if strict else "")
+        + "^ App\nupper = E\"a\\nb\"\nlower = e'\\x41\\o7\\?\\/\\`\\0'\n"
+        + 'legacy = c"a\\nb"\ntriple = e"""one\\ntwo"""\n'
+        + ("/END\n" if strict else "")
+    )
+
+    result = loads(text, strict=strict)
+
+    assert result["App"] == {
+        "upper": "a\nb",
+        "lower": "A\x07?/`\0",
+        "legacy": "a\nb",
+        "triple": "one\ntwo",
+    }
+
+
+@pytest.mark.parametrize("strict", [False, True])
+@pytest.mark.parametrize("escape", [r"\z", r"\x1", r"\uD800", r"\U00110000", r"\o400"])
+def test_rejects_invalid_escaped_string_escape(strict: bool, escape: str) -> None:
+    text = (
+        ("@yini\n" if strict else "")
+        + f'^ App\nbad = E"{escape}"\n'
+        + ("/END\n" if strict else "")
+    )
+
+    with pytest.raises(YiniParseError):
+        loads(text, strict=strict)
+
+
 def test_rejects_invalid_classic_octal_escape() -> None:
     text = r"""
 ^ App
@@ -118,8 +177,21 @@ bad = C"\o378"
         loads(text)
 
 
+@pytest.mark.parametrize("strict", [False, True])
+def test_preserves_literal_tabs_in_single_line_strings(strict: bool) -> None:
+    text = (
+        ("@yini\n" if strict else "")
+        + '^ App\nraw = "alpha\tbeta"\nescaped = E"one\ttwo"\n'
+        + ("/END\n" if strict else "")
+    )
+
+    result = loads(text, strict=strict)
+
+    assert result["App"] == {"raw": "alpha\tbeta", "escaped": "one\ttwo"}
+
+
 def test_rejects_literal_control_character_in_string() -> None:
-    text = '^ App\nbad = "alpha\tbeta"\n'
+    text = '^ App\nbad = "alpha\x01beta"\n'
 
     with pytest.raises(YiniParseError):
         loads(text)
@@ -243,7 +315,8 @@ hexColorAlt = hex:FF_AA_00
 duodecimalValue = 0z_1x_e
 """.lstrip()
 
-    result = loads(text)
+    with pytest.warns(YiniParseWarning, match="%.*deprecated.*0b"):
+        result = loads(text)
 
     assert result == {
         "App": {
@@ -255,3 +328,67 @@ duodecimalValue = 0z_1x_e
             "duodecimalValue": 1 * 12 * 12 + 10 * 12 + 11,
         },
     }
+
+
+@pytest.mark.parametrize("strict", [False, True])
+@pytest.mark.parametrize("literal", ["%1010", "+%_10_10", "-%1010"])
+@pytest.mark.parametrize("container", ["{}", "[{}]", "{{number: {}}}"])
+def test_percent_binary_prefix_warns(
+    strict: bool, literal: str, container: str
+) -> None:
+    text = f"^ App\nvalue = {container.format(literal)}\n/END\n"
+
+    with pytest.warns(YiniParseWarning, match="%.*deprecated.*0b") as captured:
+        result = loads(text, strict=strict)
+
+    expected = -10 if literal.startswith("-") else 10
+    if container == "[{}]":
+        assert result["App"]["value"] == [expected]
+    elif container == "{{number: {}}}":
+        assert result["App"]["value"] == {"number": expected}
+    else:
+        assert result["App"]["value"] == expected
+    assert len(captured) == 1
+    warning = captured[0].message
+    assert isinstance(warning, YiniParseWarning)
+    assert warning.code == "deprecated-binary-prefix"
+    assert warning.line == 2
+    assert warning.column == text.splitlines()[1].index(literal) + 1
+
+
+@pytest.mark.parametrize("strict", [False, True])
+def test_accepts_signed_64_bit_integer_boundaries(strict: bool) -> None:
+    text = (
+        ("@yini\n" if strict else "")
+        + "^ App\nmax = 9223372036854775807\nmin = -9223372036854775808\n"
+        + ("/END\n" if strict else "")
+    )
+
+    result = loads(text, strict=strict)
+
+    assert result["App"] == {
+        "max": 9223372036854775807,
+        "min": -9223372036854775808,
+    }
+
+
+@pytest.mark.parametrize("strict", [False, True])
+@pytest.mark.parametrize(
+    "number",
+    [
+        "9223372036854775808",
+        "-9223372036854775809",
+        "0x8000000000000000",
+        "1e400",
+        "1e-400",
+    ],
+)
+def test_rejects_number_outside_supported_range(strict: bool, number: str) -> None:
+    text = (
+        ("@yini\n" if strict else "")
+        + f"^ App\nvalue = {number}\n"
+        + ("/END\n" if strict else "")
+    )
+
+    with pytest.raises(YiniParseError):
+        loads(text, strict=strict)

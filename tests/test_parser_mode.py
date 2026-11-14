@@ -4,8 +4,14 @@ from __future__ import annotations
 import pytest
 
 from yini_parser.api.errors import YiniParseError
-from yini_parser.api.warnings import YiniParseWarning
 from yini_parser.api.load import loads
+from yini_parser.api.warnings import YiniParseWarning
+
+
+@pytest.mark.parametrize("strict", [False, True])
+def test_reserved_include_directive_is_rejected(strict: bool) -> None:
+    with pytest.raises(YiniParseError, match="@include directive is reserved"):
+        loads('@include "base.yini"\n^ App\nvalue = true\n/END\n', strict=strict)
 
 
 def test_yini_strict_declaration_matches_strict_parser_mode() -> None:
@@ -61,30 +67,7 @@ name = "Demo App"
     }
 
 
-def test_yini_lenient_declaration_warns_in_strict_parser_mode_1() -> None:
-    text = """
-@yini lenient
-
-^ App
-name = "Demo App"
-
-/END
-""".lstrip()
-
-    with pytest.warns(
-        Warning,
-        match="declares '@yini lenient'.*strict mode",
-    ):
-        result = loads(text, strict=True)
-
-    assert result == {
-        "App": {
-            "name": "Demo App",
-        },
-    }
-
-
-def test_yini_lenient_declaration_warns_in_strict_parser_mode_2() -> None:
+def test_yini_lenient_declaration_warns_in_strict_parser_mode() -> None:
     text = """
 @yini lenient
 
@@ -97,14 +80,35 @@ name = "Demo App"
     with pytest.warns(
         YiniParseWarning,
         match="declares '@yini lenient'.*strict mode",
-    ):
+    ) as captured:
         result = loads(text, strict=True)
 
-    assert result == {
-        "App": {
-            "name": "Demo App",
-        },
-    }
+    assert result == {"App": {"name": "Demo App"}}
+    warning = captured[0].message
+    assert isinstance(warning, YiniParseWarning)
+    assert (warning.code, warning.line, warning.column) == ("mode-mismatch", 1, 7)
+
+
+def test_yini_lenient_declaration_still_requires_strict_terminator() -> None:
+    text = """
+@yini lenient
+
+^ App
+name = "Demo App"
+
+""".lstrip()
+
+    with pytest.warns(YiniParseWarning, match="declares '@yini lenient'"):
+        with pytest.raises(
+            YiniParseError, match="requires exactly one document terminator"
+        ):
+            loads(text, strict=True)
+
+
+def test_yini_lenient_declaration_still_rejects_strict_trailing_comma() -> None:
+    with pytest.warns(YiniParseWarning, match="declares '@yini lenient'"):
+        with pytest.raises(YiniParseError, match="Trailing commas"):
+            loads("@yini lenient\n^ App\nvalues = [1,]\n/END\n", strict=True)
 
 
 def test_plain_yini_directive_allows_lenient_parser_mode() -> None:

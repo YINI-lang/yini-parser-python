@@ -1,5 +1,6 @@
 # src/yini_parser/utils/text.py
 
+import re
 from typing import Any
 
 
@@ -31,10 +32,10 @@ def strip_whitespaces(txt: str) -> str:
 
 def strip_backticks(text: str) -> str:
     """
-    Remove enclosing backticks and decode escaped backslashes.
+    Remove enclosing backticks and decode permitted identifier escapes.
     """
 
     text = text.strip()
     if len(text) >= 2 and text[0] == "`" and text[-1] == "`":
-        return text[1:-1].replace("\\\\", "\\")
+        return re.sub(r"\\([`\\])", lambda match: match.group(1), text[1:-1])
     return text

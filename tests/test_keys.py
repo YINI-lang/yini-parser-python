@@ -78,6 +78,50 @@ def test_backticked_keys_decode_escaped_backslashes(strict: bool) -> None:
     }
 
 
+@pytest.mark.parametrize("strict", [False, True])
+def test_backticked_keys_decode_escaped_backticks(strict: bool) -> None:
+    text = (
+        ("@yini\n" if strict else "")
+        + '^ Keys\n`member\\`name` = "member"\n'
+        + 'labels = { `object\\`name`: "object" }\n'
+        + ("/END\n" if strict else "")
+    )
+
+    result = loads(text, strict=strict)
+
+    assert result["Keys"]["member`name"] == "member"
+    assert result["Keys"]["labels"]["object`name"] == "object"
+
+
+@pytest.mark.parametrize("strict", [False, True])
+def test_boolean_and_null_words_are_valid_identifiers(strict: bool) -> None:
+    text = (
+        ("@yini\n" if strict else "")
+        + '^ Keys\ntrue = "member"\nlabels = { null: "object" }\n'
+        + ("/END\n" if strict else "")
+    )
+
+    result = loads(text, strict=strict)
+
+    assert result["Keys"]["true"] == "member"
+    assert result["Keys"]["labels"]["null"] == "object"
+
+
+@pytest.mark.parametrize("strict", [False, True])
+@pytest.mark.parametrize("name", [r"bad\q", "bad\x80"])
+def test_rejects_invalid_backticked_identifier_escape_or_control(
+    strict: bool, name: str
+) -> None:
+    text = (
+        ("@yini\n" if strict else "")
+        + f'^ Keys\n`{name}` = "value"\n'
+        + ("/END\n" if strict else "")
+    )
+
+    with pytest.raises(YiniParseError):
+        loads(text, strict=strict)
+
+
 def test_rejects_plain_key_starting_with_digit() -> None:
     text = """
 ^ Keys

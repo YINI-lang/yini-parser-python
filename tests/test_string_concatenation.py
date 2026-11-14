@@ -1,6 +1,49 @@
 import pytest
 
 from yini_parser import loads, YiniParseError
+from yini_parser.api.warnings import YiniParseWarning
+
+
+@pytest.mark.parametrize(("literal", "expected"), [("%1010", "n:10"), ("-%0", "n:-0")])
+def test_percent_binary_concatenation_warns(literal: str, expected: str) -> None:
+    with pytest.warns(YiniParseWarning, match="%.*deprecated.*0b") as captured:
+        result = loads(f'^ App\nvalue = "n:" + {literal}\n')
+
+    assert result["App"]["value"] == expected
+    assert len(captured) == 1
+
+
+@pytest.mark.parametrize(
+    ("expression", "expected"),
+    [
+        ('"a"+42', "a42"),
+        ('"a"++42', "a42"),
+        ('"a"+-42', "a-42"),
+        ('"a"+0xFF', "a255"),
+        ('"a"+1e+3', "a1e3"),
+        ('"a"+true+null', "atruenull"),
+    ],
+)
+def test_lenient_concatenation_without_whitespace(
+    expression: str, expected: str
+) -> None:
+    result = loads(f"^ App\nvalue = {expression}\n")
+
+    assert result["App"]["value"] == expected
+
+
+@pytest.mark.parametrize("expression", ['"a"+42', '"a"++42', '"a"+-42'])
+def test_strict_concatenation_without_whitespace_rejects_numbers(
+    expression: str,
+) -> None:
+    with pytest.raises(YiniParseError, match="only allows string literals"):
+        loads(f"^ App\nvalue = {expression}\n/END\n", strict=True)
+
+
+@pytest.mark.parametrize("expression", ['"a"+ + 42', '"a"+ -/* gap */42'])
+def test_concatenation_rejects_separated_numeric_sign(expression: str) -> None:
+    with pytest.raises(YiniParseError, match="sign must immediately precede"):
+        loads(f"^ App\nvalue = {expression}\n")
 
 
 def test_string_concatenation_uses_explicit_line_end_plus() -> None:
@@ -76,6 +119,23 @@ plusNumber = "n-" + +100
     assert result["App"]["boolLabel"] == "enabled-true"
     assert result["App"]["nullLabel"] == "value-null"
     assert result["App"]["plusNumber"] == "n-100"
+
+
+def test_lenient_concatenation_preserves_normalized_decimal_spelling() -> None:
+    text = (
+        '^ App\nvalue = "n:" + 1_000 + "," + 1.50 + "," + 3E+04 + "," + -0'
+        ' + "," + 1e3 + "," + 0xFF\n'
+    )
+
+    result = loads(text)
+
+    assert result["App"]["value"] == "n:1000,1.50,3e04,-0,1e3,255"
+
+
+def test_lenient_concatenation_preserves_nondecimal_negative_zero() -> None:
+    result = loads('^ App\nvalue = "n:" + -0x0\n')
+
+    assert result["App"]["value"] == "n:-0"
 
 
 # ---------

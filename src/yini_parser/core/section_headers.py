@@ -19,9 +19,8 @@ def parse_section_head(
         (level, name)
     """
 
-    text = raw_text.strip()
+    text = _strip_section_tail_comment(raw_text.strip())
     text = text.splitlines()[0].strip()
-    text = _strip_section_tail_comment(text)
 
     if not text:
         raise YiniParseError(
@@ -32,10 +31,10 @@ def parse_section_head(
 
     marker = text[0]
 
-    if marker not in {"^", "<", "§"}:
+    if marker not in {"^", "<", ">", "§"}:
         raise YiniParseError(
             f"Invalid section header: {marker!r} is not a valid section marker. "
-            "Use one of: '^', '<', or '§'.",
+            "Use one of: '^', '<', '>', or '§'.",
             line=line,
             column=column,
         )
@@ -89,6 +88,13 @@ def parse_section_head(
 
         name = text[i:].strip()
 
+    if level > 255:
+        raise YiniParseError(
+            "The maximum supported section depth is 255 levels.",
+            line=line,
+            column=column,
+        )
+
     if not name:
         raise YiniParseError(
             f"Missing section name after section marker {marker!r}.",
@@ -119,6 +125,10 @@ def _strip_section_tail_comment(text: str) -> str:
     while i < len(text):
         ch = text[i]
 
+        if ch == "\\" and in_backtick and i + 1 < len(text):
+            i += 2
+            continue
+
         if ch == "`" and not in_single and not in_double:
             in_backtick = not in_backtick
             i += 1
@@ -135,6 +145,13 @@ def _strip_section_tail_comment(text: str) -> str:
             continue
 
         if not in_single and not in_double and not in_backtick:
+            if ch == "/" and i + 1 < len(text) and text[i + 1] == "*":
+                end = text.find("*/", i + 2)
+                if end == -1:
+                    break
+                text = text[:i] + " " + text[end + 2 :]
+                continue
+
             if ch == "#":
                 return text[:i].rstrip()
 
