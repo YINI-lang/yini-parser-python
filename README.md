@@ -4,19 +4,17 @@ The official Python parser for **YINI**, a configuration format inspired by INI.
 YINI supports nested sections, comments, and values such as numbers, booleans,
 lists, and objects. Section markers define the nesting, so indentation is optional.
 
+Useful links:
+- [Try YINI in Playground](https://yini-lang.org/playground/?utm_source=github&utm_campaign=yini_parser_python&utm_content=readme_useful_links&utm_medium=referral)
+- [yini-parser on GitHub](https://github.com/YINI-lang/yini-parser-python)
+- [Report an Issue or give Feedback](https://github.com/YINI-lang/yini-parser-python/issues)
+
 [![YINI Test Suite](https://github.com/YINI-lang/yini-parser-python/actions/workflows/yini-test-suite.yml/badge.svg)](https://github.com/YINI-lang/yini-parser-python/actions/workflows/yini-test-suite.yml)
 [![PyPI version](https://img.shields.io/pypi/v/yini-parser)](https://pypi.org/project/yini-parser/)
 [![Python versions](https://img.shields.io/pypi/pyversions/yini-parser)](https://pypi.org/project/yini-parser/)
 
 Requires **Python 3.10 or newer**. This parser is a release candidate and targets
 **YINI Specification 1.0.0 RC7**. See the [changelog](CHANGELOG.md) for release details.
-
-## Project links
-
-- [YINI homepage](https://yini-lang.org?utm_source=github&utm_campaign=yini_parser_python&utm_content=readme_project_links&utm_medium=referral)
-- [YINI specification](https://yini-lang.org/refs/specification?utm_source=github&utm_campaign=yini_parser_python&utm_content=readme_project_links&utm_medium=referral)
-- [GitHub repository](https://github.com/YINI-lang/yini-parser-python)
-- [Bug reports and issues](https://github.com/YINI-lang/yini-parser-python/issues)
 
 ---
 
@@ -377,6 +375,14 @@ pushes to `main`, and before publishing a release.
 
 Passing these tests helps check compatibility with the specification. Test the
 configuration files your application uses as well.
+
+---
+
+## Links
+
+- [YINI Cheat Sheet](https://yini-lang.org/refs/yini-cheat-sheet/?utm_source=github&utm_campaign=yini_parser_python&utm_content=readme_links&utm_medium=referral)
+- [YINI Specification](https://yini-lang.org/refs/specification/?utm_source=github&utm_campaign=yini_parser_python&utm_content=readme_links&utm_medium=referral)
+- [YINI Demo Apps](https://github.com/YINI-lang/yini-demo-apps)
 
 ---
 
