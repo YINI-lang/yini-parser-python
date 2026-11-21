@@ -382,7 +382,7 @@ configuration files your application uses as well.
 
 - [YINI Cheat Sheet](https://yini-lang.org/refs/yini-cheat-sheet/?utm_source=github&utm_campaign=yini_parser_python&utm_content=readme_links&utm_medium=referral)
 - [YINI Specification](https://yini-lang.org/refs/specification/?utm_source=github&utm_campaign=yini_parser_python&utm_content=readme_links&utm_medium=referral)
-- [YINI Demo Apps](https://github.com/YINI-lang/yini-demo-apps)
+- [YINI Demo Apps (source code)](https://github.com/YINI-lang/yini-demo-apps)
 
 ---
 
