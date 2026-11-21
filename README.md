@@ -6,7 +6,7 @@ lists, and objects. Section markers define the nesting, so indentation is option
 
 Useful links:
 - [Try YINI in Playground](https://yini-lang.org/playground/?utm_source=github&utm_campaign=yini_parser_python&utm_content=readme_useful_links&utm_medium=referral)
-- [yini-parser on GitHub](https://github.com/YINI-lang/yini-parser-python)
+- [This yini-parser on GitHub](https://github.com/YINI-lang/yini-parser-python)
 - [Report an Issue or give Feedback](https://github.com/YINI-lang/yini-parser-python/issues)
 
 [![YINI Test Suite](https://github.com/YINI-lang/yini-parser-python/actions/workflows/yini-test-suite.yml/badge.svg)](https://github.com/YINI-lang/yini-parser-python/actions/workflows/yini-test-suite.yml)
